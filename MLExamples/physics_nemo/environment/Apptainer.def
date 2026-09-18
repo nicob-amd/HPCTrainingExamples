@@ -1,0 +1,86 @@
+# ROCm/HIP Apptainer image for the workshop_crash_surrogate folder.
+# Mirrors install_venv.sh's pinned-wheel recipe exactly (same torch/
+# torchvision ROCm 7.2.1 wheels, same nvidia-physicsnemo==2.1.1, same
+# --no-deps two-pass pattern), baked into an image instead of a venv.
+#
+# Build:
+#   apptainer build workshop.sif Apptainer.def
+#
+# Run (bind this folder in, so data/checkpoint/src are visible inside):
+#   apptainer run --rocm --bind $(pwd):/workshop workshop.sif
+#
+# This launches Jupyter Lab bound to 0.0.0.0:8888 inside /workshop by
+# default (see %runscript). Override with:
+#   apptainer exec --rocm --bind $(pwd):/workshop workshop.sif bash
+
+Bootstrap: docker
+From: rocm/dev-ubuntu-22.04:7.2.1-complete
+
+%post
+    set -eux
+
+    export DEBIAN_FRONTEND=noninteractive
+    apt-get update
+    apt-get install -y --no-install-recommends python3.12 python3.12-venv python3-pip curl ca-certificates
+    rm -rf /var/lib/apt/lists/*
+
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+    export PATH="/root/.local/bin:$PATH"
+
+    export ROCM_PATH=/opt/rocm
+    export LD_LIBRARY_PATH="$ROCM_PATH/lib:$ROCM_PATH/lib64"
+    export PATH="$ROCM_PATH/bin:$PATH"
+
+    ROCM_REPO="https://repo.radeon.com/rocm/manylinux/rocm-rel-7.2.1"
+    TORCH_WHEEL="${ROCM_REPO}/torch-2.9.1%2Brocm7.2.1.lw.gitff65f5bc-cp312-cp312-linux_x86_64.whl"
+    TORCHVISION_WHEEL="${ROCM_REPO}/torchvision-0.24.0%2Brocm7.2.1.gitb919bd0c-cp312-cp312-linux_x86_64.whl"
+
+    uv venv --python 3.12 /opt/venv
+    PY=/opt/venv/bin/python3
+
+    echo "=== [1/4] Installing ROCm torch + torchvision + physicsnemo (--no-deps) ==="
+    uv pip install --python "$PY" --no-deps "$TORCH_WHEEL"
+    uv pip install --python "$PY" --no-deps "$TORCHVISION_WHEEL"
+    uv pip install --python "$PY" --no-deps "nvidia-physicsnemo==2.1.1"
+
+    echo "=== [2/4] Installing dependency-resolved packages ==="
+    uv pip install --python "$PY" \
+      typing_extensions filelock networkx sympy jinja2 fsspec \
+      numpy pyvista tabulate tensorboard torchinfo tqdm rich \
+      warp-lang einops timm omegaconf hydra-core requests h5py \
+      onnx treelib termcolor gitpython s3fs cftime pandas urllib3 \
+      importlib-metadata jaxtyping nvtx packaging \
+      jupyterlab ipykernel matplotlib
+
+    echo "=== [3/4] Installing tensordict (--no-deps) ==="
+    uv pip install --python "$PY" --no-deps "tensordict"
+
+    echo "=== [4/4] Reinstalling ROCm torch/torchvision (guards against any resolver clobber) ==="
+    uv pip install --python "$PY" --no-deps "$TORCH_WHEEL"
+    uv pip install --python "$PY" --no-deps "$TORCHVISION_WHEEL"
+
+    echo "=== Verifying ==="
+    "$PY" -c "
+import torch
+print('torch:', torch.__version__)
+assert '+rocm' in torch.__version__, 'torch was clobbered with a non-ROCm build!'
+" | tee /opt/INSTALL_LOG.txt
+    "$PY" -c "import physicsnemo; print('physicsnemo:', physicsnemo.__version__)" | tee -a /opt/INSTALL_LOG.txt
+    "$PY" -c "import pyvista; print('pyvista:', pyvista.__version__)" | tee -a /opt/INSTALL_LOG.txt
+    "$PY" -c "import hydra, omegaconf; print('hydra-core:', hydra.__version__); print('omegaconf:', omegaconf.__version__)" | tee -a /opt/INSTALL_LOG.txt
+    echo "=== Full pip freeze ===" | tee -a /opt/INSTALL_LOG.txt
+    uv pip freeze --python "$PY" >> /opt/INSTALL_LOG.txt
+
+%environment
+    export ROCM_PATH=/opt/rocm
+    export LD_LIBRARY_PATH=/opt/rocm/lib:/opt/rocm/lib64
+    export PATH=/opt/rocm/bin:/opt/venv/bin:$PATH
+
+%runscript
+    echo "workshop_crash_surrogate image — INSTALL_LOG.txt:"
+    cat /opt/INSTALL_LOG.txt
+    echo
+    echo "Bind your copy of workshop_crash_surrogate with --bind \$(pwd):/workshop"
+    echo "and run e.g.: apptainer exec --rocm --bind \$(pwd):/workshop workshop.sif \\"
+    echo "  jupyter lab --notebook-dir=/workshop --ip=0.0.0.0 --no-browser --allow-root"
+    exec jupyter lab --notebook-dir=/workshop --ip=0.0.0.0 --no-browser --allow-root
