@@ -17,8 +17,7 @@ tar czf workshop_crash_surrogate.tar.gz workshop_crash_surrogate/
 
 ## 2. Pick an install path based on what the target has
 
-**Apptainer available (preferred — this path is UNVERIFIED so far, since
-Apptainer isn't installed on the machine this was built on):**
+**Apptainer available — two sub-paths depending on account permissions:**
 
 ```bash
 cd workshop_crash_surrogate/environment
@@ -32,6 +31,43 @@ print `torch: 2.9.1+rocm7.2.1...` and not trip the `assert '+rocm' in
 torch.__version__` guard. If the target's ROCm driver is a different major
 version than 7.2.1, the container's userspace libs may still work (ROCm has
 some forward compatibility) but this isn't guaranteed.
+
+**This has now been tried on a real shared HPC login node and the
+`apptainer build` step failed there** with:
+
+```
+ERROR  : Could not write info to setgroups: Permission denied
+ERROR  : Error while waiting event for user namespace mappings: no event received
+FATAL:   ... while running %post section: exit status 1
+```
+
+Root cause: `apptainer build` runs `%post` as fake-root, which requires
+an `/etc/subuid`/`/etc/subgid` entry for your account on that node.
+Confirmed independently with a plain `unshare -Ur` (same "Operation not
+permitted"). This is a per-account, per-node restriction, unrelated to
+which directory you build into — check `grep $(whoami) /etc/subuid
+/etc/subgid` before assuming this path will work.
+
+If you hit this, use `setup_env.sh` instead (same repo, same folder) —
+**this path HAS been verified end-to-end** (installs cleanly, correct
+`torch: 2.9.1+rocm7.2.1...`, `physicsnemo: 2.1.1`, `pyvista`,
+`hydra-core`/`omegaconf` all import cleanly):
+
+```bash
+cd workshop_crash_surrogate/environment
+apptainer pull workshop_base.sif docker://rocm/dev-ubuntu-22.04:7.2.1-complete
+apptainer exec --bind $(pwd)/..:/workshop workshop_base.sif \
+  bash /workshop/environment/setup_env.sh
+cd ..
+apptainer exec --rocm --bind $(pwd):/workshop environment/workshop_base.sif \
+  environment/venv/bin/jupyter lab --notebook-dir=/workshop --ip=0.0.0.0 --no-browser
+```
+
+This works because `apptainer pull` does no `%post` (no fakeroot needed),
+and `apptainer exec` without `--fakeroot` just runs as your own uid —
+neither needs the subuid/subgid entry that `build` does. `setup_env.sh`
+gets Python 3.12 via `uv python install` instead of `apt-get`, which is
+the only step in `Apptainer.def` that actually needed root.
 
 **No Apptainer — venv fallback (this path HAS been verified end-to-end,
 see section 3 below):**

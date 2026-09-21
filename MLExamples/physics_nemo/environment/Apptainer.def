@@ -12,6 +12,18 @@
 # This launches Jupyter Lab bound to 0.0.0.0:8888 inside /workshop by
 # default (see %runscript). Override with:
 #   apptainer exec --rocm --bind $(pwd):/workshop workshop.sif bash
+#
+# CAVEAT: `apptainer build` runs %post as fake-root, which needs your
+# user to have an entry in /etc/subuid + /etc/subgid on the build host.
+# On shared/HPC login nodes this is often not the case, and the build
+# fails with:
+#   ERROR  : Could not write info to setgroups: Permission denied
+#   ERROR  : Error while waiting event for user namespace mappings: no event received
+#   FATAL:   ... while running %post section: exit status 1
+# If you hit that, use setup_env.sh instead — it gets the identical
+# pinned environment via `apptainer pull` (no %post, no fakeroot) plus
+# a plain `apptainer exec` install script, with zero privileged
+# operations required. See setup_env.sh's header for usage.
 
 Bootstrap: docker
 From: rocm/dev-ubuntu-22.04:7.2.1-complete
