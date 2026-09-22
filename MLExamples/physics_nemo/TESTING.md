@@ -111,6 +111,41 @@ no GPU allocated in that session) — full run, every cell inspected for
 relative error ~0.5% on a held-out run, consistent with the production
 project's ~5-31% baseline band).
 
+## 3b. Running end-to-end on a real GPU node (verified command)
+
+On a GPU-allocated node (e.g. via `salloc`/`srun --gpus=1`), with the
+`setup_env.sh` install from section 2:
+
+```bash
+cd workshop_crash_surrogate
+apptainer exec --rocm --bind $(pwd):/workshop \
+  --env FORCE_ADAM_MI300A=1 \
+  --env RANK=0 --env WORLD_SIZE=1 --env LOCAL_RANK=0 \
+  --env MASTER_ADDR=127.0.0.1 --env MASTER_PORT=29500 \
+  environment/workshop_base.sif \
+  environment/venv/bin/python3 -u workshop_crash_surrogate.py
+```
+
+Notes on the env vars:
+
+- `RANK`/`WORLD_SIZE`/`LOCAL_RANK`/`MASTER_ADDR`/`MASTER_PORT` — needed
+  when running under Slurm (`srun`): `physicsnemo`'s checkpoint loader
+  auto-detects a distributed job from `SLURM_PROCID` and crashes without
+  these explicitly set, since a plain single-task `srun` session doesn't
+  set the rest of the Slurm env vars it expects.
+- `FORCE_ADAM_MI300A=1` — on some hardware the default Muon optimizer
+  used in the toy training loop (cell 12) is dramatically slower than
+  Adam; this toggle (in the notebook and in `workshop_crash_surrogate.py`,
+  its plain-script export) swaps it out. Confirmed on one MI300A node:
+  full run 30 epochs -> ~2 minutes with this set; without it, a single
+  optimizer step took several minutes.
+- Prefer running `workshop_crash_surrogate.py` (exported via `jupyter
+  nbconvert --to script workshop_crash_surrogate.ipynb`) over `nbconvert
+  --execute` for interactive runs — `nbconvert --execute` buffers all
+  cell output into the resulting notebook file and only prints to the
+  terminal live if a cell errors, so you won't see per-epoch loss or
+  progress until the whole thing finishes (or fails).
+
 ## 4. Things a same-machine test can't catch — check these on the real target
 
 - **GPU visibility.** Confirm `torch.cuda.is_available()` in notebook

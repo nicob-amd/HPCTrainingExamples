@@ -63,10 +63,17 @@ uv pip install --python "$PY" \
   importlib-metadata jaxtyping nvtx packaging \
   jupyterlab ipykernel matplotlib
 
-echo "=== [3/4] Installing tensordict (--no-deps) ==="
+echo "=== [3/4] Installing tensordict (--no-deps) + its actual small deps ==="
+# tensordict lists torch/torchvision as deps, so a normal (non --no-deps)
+# install lets the resolver fetch a stock CUDA torch/torchvision from PyPI
+# (multiple GB) before we'd overwrite it below -- wasted bandwidth for no
+# benefit. Its only *real* extra runtime deps (found by following the
+# ModuleNotFoundError traceback with --no-deps) are pyvers and cloudpickle,
+# neither of which touches torch, so install those explicitly instead.
 uv pip install --python "$PY" --no-deps "tensordict"
+uv pip install --python "$PY" pyvers cloudpickle orjson
 
-echo "=== [4/4] Reinstalling ROCm torch/torchvision (guards against any resolver clobber) ==="
+echo "=== [4/4] Reinstalling ROCm torch/torchvision (cheap safety net -- served from uv's local cache, no network) ==="
 uv pip install --python "$PY" --no-deps "$TORCH_WHEEL"
 uv pip install --python "$PY" --no-deps "$TORCHVISION_WHEEL"
 
