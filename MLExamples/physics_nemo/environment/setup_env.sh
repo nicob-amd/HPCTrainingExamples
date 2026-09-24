@@ -55,13 +55,23 @@ uv pip install --python "$PY" --no-deps "$TORCHVISION_WHEEL"
 uv pip install --python "$PY" --no-deps "nvidia-physicsnemo==2.1.1"
 
 echo "=== [2/4] Installing dependency-resolved packages ==="
+# warp-lang installed separately below with --no-deps: on Linux its wheel
+# pulls a large NVIDIA CUDA JIT toolchain (nvidia-cublas, nvidia-cudnn-cu13,
+# nvidia-nccl-cu13, triton, cuda-bindings, cuda-toolkit, ...) that's dead
+# weight here -- there's no NVIDIA CUDA driver on a ROCm box, so warp has no
+# GPU backend regardless (physicsnemo's RadiusSearch falls back to a plain
+# torch implementation at runtime either way). `import warp` itself only
+# needs numpy (already installed below), confirmed by a real run where warp
+# imported and printed its own "no CUDA driver" warning without needing any
+# of the CUDA packages to be present.
 uv pip install --python "$PY" \
   typing_extensions filelock networkx sympy jinja2 fsspec \
   numpy pyvista tabulate tensorboard torchinfo tqdm rich \
-  warp-lang einops timm omegaconf hydra-core requests h5py \
+  einops timm omegaconf hydra-core requests h5py \
   onnx treelib termcolor gitpython s3fs cftime pandas urllib3 \
   importlib-metadata jaxtyping nvtx packaging \
   jupyterlab ipykernel matplotlib
+uv pip install --python "$PY" --no-deps warp-lang
 
 echo "=== [3/4] Installing tensordict (--no-deps) + its actual small deps ==="
 # tensordict lists torch/torchvision as deps, so a normal (non --no-deps)

@@ -85,3 +85,10 @@ build/
 # Julia manifests
 Manifest.toml
 Manifest-v*.toml
+
+# PhysicsNeMo crash-surrogate workshop: vtp_reader.Reader auto-dumps every
+# timestep frame to ./output_<run_id>/ for any non-train/validation split
+# (see Reader.__call__). This reproduces deterministically every time the
+# workshop's real-checkpoint eval step runs, so it's derived output, not
+# source -- don't commit it.
+MLExamples/physics_nemo/output_run*/
