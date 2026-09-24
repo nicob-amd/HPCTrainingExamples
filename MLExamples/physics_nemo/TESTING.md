@@ -240,6 +240,22 @@ Two paths were considered and rejected in favor of this patch:
   `NVIDIA/physicsnemo` crash example's own benchmarks) is less accurate
   than GeoTransolver on this exact dataset. Not needed once the patch was
   shown to fully preserve the existing checkpoint's accuracy.
+
+**Cross-checked on a second, independent torch+ROCm10 build**
+(`environment/setup_env_rocm10_pytorch_container.sh`): rather than building
+torch from wheels on top of a bare ROCm base image, this variant pulls
+AMD's official prebuilt image
+(`docker://rocm/pytorch:rocm10.0_ubuntu24.04_py3.12_pytorch_release_2.11.0`),
+which ships torch 2.11.0+rocm10.0.0 already installed. The same
+`bq_torch_patch.py` fix applies unchanged, and a full
+`workshop_crash_surrogate.py` run produced the same result: toy training
+converged normally, and the existing checkpoint evaluated with the same
+0.57%/0.26% peak-displacement error as the `setup_env_rocm10.sh` path —
+confirming this isn't specific to one particular torch build/install
+method. See that script's header comment for the differences between the
+two setups (mainly: no venv, an external `pip install --target=` directory
+instead, added to `PYTHONPATH` at run time; and `timm` needing `--no-deps`
+here in a way it didn't need there).
 - **Force `compute_mode="use_mm_for_euclid_dist_if_necessary"`** — ruled
   out above (both wrong and 35x slower).
 
