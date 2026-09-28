@@ -7,7 +7,7 @@
 # This is NOT the config used to produce checkpoint/checkpoints/ — that's
 # config.yaml (the real 220-sample / 200-epoch run). This file is only for
 # the "taste of training" cell. Paths are relative to the
-# `workshop_crash_surrogate/` folder root.
+# `01_training_and_inference/` folder root.
 reader:
   _target_: vtp_reader.Reader
   _convert_: all
@@ -29,7 +29,7 @@ datapipe:
   - crash_box_thick_scale
   - beam_thick_scale
   - rwall_origin_y
-  stats_dir: checkpoint/toy_stats
+  stats_dir: results/notebook/toy_stats
 model:
   _target_: rollout.GeoTransolverOneShot
   _convert_: all

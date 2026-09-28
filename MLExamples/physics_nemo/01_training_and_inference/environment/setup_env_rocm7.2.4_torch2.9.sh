@@ -8,12 +8,12 @@
 # same ROCm release (see setup_env_rocm7.2.4_torch2.10.sh). Expected result:
 # this should work exactly like the original 7.2.1/2.9.1 run.
 #
-# Usage (from physics_nemo/environment/):
+# Usage (from physics_nemo/01_training_and_inference/environment/):
 #   apptainer pull workshop_base_rocm724.sif docker://rocm/dev-ubuntu-22.04:7.2.4-complete
 #   apptainer exec --bind $(pwd)/..:/workshop workshop_base_rocm724.sif \
 #     bash /workshop/environment/setup_env_rocm7.2.4_torch2.9.sh
 #
-# Result: a venv at physics_nemo/environment/venv_rocm724_torch29 on the
+# Result: a venv at physics_nemo/01_training_and_inference/environment/venv_rocm724_torch29 on the
 # HOST filesystem.
 
 set -eux

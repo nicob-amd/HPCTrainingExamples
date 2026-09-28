@@ -1,5 +1,9 @@
 # Testing this folder on a new system
 
+Historical verification notes. Start with [README.md](README.md) for the current layout,
+ROCm 10 run command, and artifact contract. Timings below were recorded during earlier
+experiments and are not new measurements for this reorganization.
+
 This folder is self-contained (no hardcoded paths back to the machine it was
 built on — verified via `grep -rn "/home/nicob" .`, the only hit is a code
 comment referencing project history, not a live path). Steps to verify it
@@ -9,10 +13,10 @@ actually works on a different machine, not just that it copies over cleanly.
 
 ```bash
 # to a target host over SSH:
-rsync -avz workshop_crash_surrogate/ user@target:/path/to/workshop_crash_surrogate/
+rsync -avz 01_training_and_inference/ user@target:/path/to/01_training_and_inference/
 
 # or tar it up for offline transfer (USB stick, etc.):
-tar czf workshop_crash_surrogate.tar.gz workshop_crash_surrogate/
+tar czf workshop_crash_surrogate.tar.gz 01_training_and_inference/
 ```
 
 ## 2. Pick an install path based on what the target has
@@ -20,7 +24,7 @@ tar czf workshop_crash_surrogate.tar.gz workshop_crash_surrogate/
 **Apptainer available — two sub-paths depending on account permissions:**
 
 ```bash
-cd workshop_crash_surrogate/environment
+cd 01_training_and_inference/environment
 apptainer build workshop.sif Apptainer.def      # pulls rocm/dev-ubuntu-22.04 base + wheels, several minutes
 cd ..
 apptainer run --rocm --bind $(pwd):/workshop environment/workshop.sif
@@ -54,7 +58,7 @@ If you hit this, use `setup_env.sh` instead (same repo, same folder) —
 `hydra-core`/`omegaconf` all import cleanly):
 
 ```bash
-cd workshop_crash_surrogate/environment
+cd 01_training_and_inference/environment
 apptainer pull workshop_base.sif docker://rocm/dev-ubuntu-22.04:7.2.1-complete
 apptainer exec --bind $(pwd)/..:/workshop workshop_base.sif \
   bash /workshop/environment/setup_env.sh
@@ -73,7 +77,7 @@ the only step in `Apptainer.def` that actually needed root.
 see section 3 below):**
 
 ```bash
-cd workshop_crash_surrogate/environment
+cd 01_training_and_inference/environment
 ./install_venv.sh          # needs ROCm already on the host + `uv` on PATH
 cat INSTALL_LOG.txt        # confirm a +rocm torch build and clean imports
 ```
@@ -117,7 +121,7 @@ On a GPU-allocated node (e.g. via `salloc`/`srun --gpus=1`), with the
 `setup_env.sh` install from section 2:
 
 ```bash
-cd workshop_crash_surrogate
+cd 01_training_and_inference
 apptainer exec --rocm --bind $(pwd):/workshop \
   --env FORCE_ADAM_MI300A=1 \
   --env RANK=0 --env WORLD_SIZE=1 --env LOCAL_RANK=0 \
@@ -136,11 +140,10 @@ Notes on the env vars:
 - `FORCE_ADAM_MI300A=1` — on some hardware the default Muon optimizer
   used in the toy training loop (cell 12) is dramatically slower than
   Adam; this toggle (in the notebook and in `workshop_crash_surrogate.py`,
-  its plain-script export) swaps it out. Confirmed on one MI300A node:
+  its batch-script counterpart) swaps it out. Confirmed on one MI300A node:
   full run 30 epochs -> ~2 minutes with this set; without it, a single
   optimizer step took several minutes.
-- Prefer running `workshop_crash_surrogate.py` (exported via `jupyter
-  nbconvert --to script workshop_crash_surrogate.ipynb`) over `nbconvert
+- Prefer running `workshop_crash_surrogate.py` (the maintained batch entry point with artifact exports) over `nbconvert
   --execute` for interactive runs — `nbconvert --execute` buffers all
   cell output into the resulting notebook file and only prints to the
   terminal live if a cell errors, so you won't see per-epoch loss or

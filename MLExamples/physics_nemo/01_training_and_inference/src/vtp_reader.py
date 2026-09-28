@@ -220,8 +220,12 @@ def process_vtp_data(
     for vtp_path in vtp_files:
         if logger:
             logger.info(f"Processing {vtp_path}...")
-        output_dir = f"./output_{os.path.splitext(os.path.basename(vtp_path))[0]}"
-        os.makedirs(output_dir, exist_ok=True)
+        output_dir = os.path.join(
+            os.environ.get("WORKSHOP_VTP_OUTPUT_DIR", "results/notebook/vtp"),
+            os.path.splitext(os.path.basename(vtp_path))[0],
+        )
+        if write_vtp:
+            os.makedirs(output_dir, exist_ok=True)
 
         # Get global features for this run
         run_id = os.path.splitext(os.path.basename(vtp_path))[0]

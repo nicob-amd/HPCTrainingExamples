@@ -10,8 +10,8 @@
 # since this describes how the *checkpoint* was produced, not how to
 # retrain it.
 #
-# Paths are relative to the `workshop_crash_surrogate/` folder root (i.e.
-# load this with cwd = workshop_crash_surrogate/, or resolve relative to
+# Paths are relative to the `01_training_and_inference/` folder root (i.e.
+# load this with cwd = 01_training_and_inference/, or resolve relative to
 # this file's parent's parent).
 #
 # NOTE on inference (see notebook section 6, mirrors surrogate_opt/

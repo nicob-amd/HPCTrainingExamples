@@ -11,12 +11,12 @@
 # apt, which needs no root. Net effect: identical resulting environment,
 # zero privileged operations, works for any user on any node.
 #
-# Usage (from physics_nemo/environment/):
+# Usage (from physics_nemo/01_training_and_inference/environment/):
 #   apptainer pull workshop_base.sif docker://rocm/dev-ubuntu-22.04:7.2.1-complete
 #   apptainer exec --rocm --bind $(pwd)/..:/workshop workshop_base.sif \
 #     bash /workshop/environment/setup_env.sh
 #
-# Result: a venv at physics_nemo/environment/venv on the HOST filesystem
+# Result: a venv at physics_nemo/01_training_and_inference/environment/venv on the HOST filesystem
 # (persists after the container exits, reusable by later `apptainer exec`
 # calls that just launch jupyter/python against it directly).
 

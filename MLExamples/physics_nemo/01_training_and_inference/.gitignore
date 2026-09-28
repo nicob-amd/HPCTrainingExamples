@@ -1,0 +1,6 @@
+results/
+environment/*.sif
+environment/venv*/
+environment/.uv*/
+environment/INSTALL_LOG*.txt
+.ipynb_checkpoints/

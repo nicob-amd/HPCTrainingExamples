@@ -28,13 +28,13 @@
 # is 2.11.0), chosen as a data point closer to the known-good 2.9.1 rather
 # than reusing the already-confirmed-buggy 2.11.0/2.13.0.
 #
-# Usage (from physics_nemo/environment/):
+# Usage (from physics_nemo/01_training_and_inference/environment/):
 #   apptainer pull workshop_base_rocm714.sif \
 #     docker://rocm/pytorch:rocm7.14.1_ubuntu24.04_py3.12_pytorch_release_2.10.0
 #   apptainer exec --bind $(pwd)/..:/workshop workshop_base_rocm714.sif \
 #     bash /workshop/environment/setup_env_rocm7.14.sh
 #
-# Result: a venv at physics_nemo/environment/venv_rocm714 on the HOST
+# Result: a venv at physics_nemo/01_training_and_inference/environment/venv_rocm714 on the HOST
 # filesystem. torch/torchvision are NOT physically inside it -- resolved via
 # the .pth file from the image's own /opt/venv at runtime, so this venv only
 # works when run via apptainer against the SAME rocm/pytorch image it was

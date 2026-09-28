@@ -40,7 +40,7 @@
 #      deps, `huggingface_hub` and `safetensors`) with `--no-deps`
 #      separately from the rest of the batch.
 #
-# Usage (from physics_nemo/environment/):
+# Usage (from physics_nemo/01_training_and_inference/environment/):
 #   apptainer pull workshop_rocm10_pytorch.sif \
 #     docker://rocm/pytorch:rocm10.0_ubuntu24.04_py3.12_pytorch_release_2.11.0
 #   apptainer exec --rocm \

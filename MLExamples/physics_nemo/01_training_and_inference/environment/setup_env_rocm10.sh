@@ -14,12 +14,12 @@
 # for torch-dependent packages, the tensordict fix) is identical to
 # setup_env.sh -- see that file's comments for the reasoning.
 #
-# Usage (from physics_nemo/environment/):
+# Usage (from physics_nemo/01_training_and_inference/environment/):
 #   apptainer pull workshop_base_rocm10.sif docker://rocm/dev-ubuntu-22.04:10.0.0-full
 #   apptainer exec --bind $(pwd)/..:/workshop workshop_base_rocm10.sif \
 #     bash /workshop/environment/setup_env_rocm10.sh
 #
-# Result: a venv at physics_nemo/environment/venv_rocm10 on the HOST
+# Result: a venv at physics_nemo/01_training_and_inference/environment/venv_rocm10 on the HOST
 # filesystem (kept separate from setup_env.sh's `venv`, so you can compare
 # the two ROCm versions side by side without clobbering either).
 

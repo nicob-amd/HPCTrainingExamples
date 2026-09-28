@@ -1,4 +1,30 @@
+"""Train a toy crash surrogate and evaluate the supplied checkpoint.
+
+See README.md for setup, results, and the artifact layout.
+"""
+import argparse
+import csv
+import json
+import platform
+from datetime import datetime, timezone
+from pathlib import Path
 import sys, os, time
+
+parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument("--output-dir", type=Path, help="New run directory (relative to the caller's directory)")
+parser.add_argument("--epochs", type=int, help="Toy training epochs (default: YAML configuration)")
+parser.add_argument("--warmup", type=int, default=3, help="Warmup forwards per simulation")
+parser.add_argument("--repeats", type=int, default=10, help="Timed forwards per simulation")
+args = parser.parse_args()
+if args.warmup < 1 or args.repeats < 1 or (args.epochs is not None and args.epochs < 1):
+    parser.error("epochs, warmup, and repeats must be positive")
+ROOT = Path(__file__).resolve().parent
+OUTPUT = (args.output_dir.resolve() if args.output_dir else
+          ROOT / "results" / datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ"))
+OUTPUT.mkdir(parents=True, exist_ok=False)
+os.chdir(ROOT)
+os.environ["WORKSHOP_VTP_OUTPUT_DIR"] = str(OUTPUT / "vtp")
+os.environ.setdefault("MPLBACKEND", "Agg")
 T0 = time.time()
 def _log(msg): print(f"[T+{time.time()-T0:6.1f}s] {msg}", flush=True)
 
@@ -20,6 +46,17 @@ print("hydra-core:", hydra.__version__, "| omegaconf:", omegaconf.__version__)
 
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print("Using device:", DEVICE)
+metadata = {
+    "status": "started", "started_utc": datetime.now(timezone.utc).isoformat(),
+    "python": platform.python_version(), "platform": platform.platform(),
+    "torch": torch.__version__, "rocm": torch.version.hip,
+    "physicsnemo": physicsnemo.__version__, "pyvista": pv.__version__,
+    "device": str(DEVICE),
+    "device_name": torch.cuda.get_device_name(0) if torch.cuda.is_available() else "CPU",
+    "force_adam_mi300a": bool(os.environ.get("FORCE_ADAM_MI300A")),
+}
+(OUTPUT / "run.json").write_text(json.dumps(metadata, indent=2) + "\n")
+print("Results:", OUTPUT)
 
 # `bq_torch_patch` forces PhysicsNeMo's radius_search onto the pure-torch backend.
 # On ROCm, warp-lang imports successfully but has no HIP backend and crashes at
@@ -72,13 +109,18 @@ ax2.set_title("t=0.5s (crushed), colored by |displacement|")
 fig.colorbar(sc, ax=ax2, shrink=0.6, label="displacement magnitude (mm)")
 
 plt.tight_layout()
-plt.show()
+fig.savefig(OUTPUT / "mesh.png", dpi=150)
+plt.close(fig)
 _log('cell 6: done')
 
 from omegaconf import OmegaConf
 from hydra.utils import instantiate
 
 toy_cfg = OmegaConf.load("checkpoint/toy_config.yaml")
+if args.epochs is not None:
+    toy_cfg.training.epochs = args.epochs
+toy_cfg.datapipe.stats_dir = str(OUTPUT / "toy_stats")
+OmegaConf.save(toy_cfg, OUTPUT / "toy_config.yaml", resolve=True)
 print(OmegaConf.to_yaml(toy_cfg, resolve=True))
 
 _log('cell 9: instantiating reader + toy dataset...')
@@ -128,6 +170,7 @@ else:
         print("Muon unavailable (needs torch>=2.9) -- falling back to Adam for this toy loop")
         optimizer = torch.optim.Adam(model.parameters(), lr=toy_cfg.training.start_lr)
 _log('cell 12: done')
+metadata["optimizer"] = type(optimizer).__name__
 
 _log('cell 13: starting toy training loop...')
 import time
@@ -161,6 +204,11 @@ for epoch in range(EPOCHS):
     print(f"epoch {epoch+1:3d}/{EPOCHS}  avg_loss={avg_loss:.4f}  elapsed={time.time()-t0:.1f}s")
 
 print("\nDone. This is a mechanics demo, not a converged surrogate -- see part 2 for the real result.")
+metadata["toy_training_seconds"] = time.time() - t0
+with (OUTPUT / "training_loss.csv").open("w", newline="") as stream:
+    writer = csv.writer(stream)
+    writer.writerow(["epoch", "average_training_loss"])
+    writer.writerows(enumerate(losses, start=1))
 _log('cell 13: done')
 
 _log('cell 14: plotting loss curve...')
@@ -172,18 +220,31 @@ plt.xlabel("epoch")
 plt.ylabel("avg training loss")
 plt.title(f"Toy training loop ({train_dataset.num_samples} samples)")
 plt.grid(alpha=0.3)
-plt.show()
+plt.savefig(OUTPUT / "training_loss.png", dpi=150)
+plt.close()
 _log('cell 14: done')
 
 _log('cell 16: instantiating real_model + loading checkpoint...')
+print("\nPart 2: real model size, inference speed, and error against two simulations")
+# Release the toy training state before measuring the independent real model.
+del model, optimizer, pred, loss, sample, sample0, data_stats, train_dataset
+import gc
+gc.collect()
+if DEVICE.type == "cuda":
+    torch.cuda.empty_cache()
 from physicsnemo.utils import load_checkpoint
+from inference_measurements import model_sizes, measure_inference
 
 real_cfg = OmegaConf.load("checkpoint/config.yaml")
+OmegaConf.save(real_cfg, OUTPUT / "evaluation_config.yaml", resolve=True)
 
 real_model = instantiate(real_cfg.model).to(DEVICE).eval()
 epoch_loaded = load_checkpoint("checkpoint/checkpoints", models=real_model, device=DEVICE)
 print(f"Loaded real checkpoint at epoch {epoch_loaded}")
 print(f"Model parameters: {sum(p.numel() for p in real_model.parameters()):,}")
+metadata.update(model_sizes(real_model, "checkpoint/checkpoints"))
+print(f"Real model archive: {metadata['model_archive_gb']:.6f} GB (decimal, weights archive only)")
+print(f"Model parameters and buffers: {metadata['model_tensor_gb']:.6f} GB (excludes runtime activations)")
 _log('cell 16: done')
 
 _log('cell 17: instantiating real test dataset...')
@@ -212,6 +273,8 @@ _log('cell 18: running inference on held-out runs...')
 # for all three channels: peak intrusion (displacement), peak plastic
 # strain, peak von Mises stress.
 run_names = ["run19", "run201"]
+metrics = []
+timings = []
 
 print(f"{'run':<8}{'peak_disp_pred':>16}{'peak_disp_true':>16}{'disp_rel%':>11}"
       f"{'strain_pred':>13}{'strain_true':>13}{'strain_rel%':>13}"
@@ -220,7 +283,11 @@ print(f"{'run':<8}{'peak_disp_pred':>16}{'peak_disp_true':>16}{'disp_rel%':>11}"
 with torch.no_grad():
     for idx, run_name in enumerate(run_names):
         sample = test_dataset[idx].to(DEVICE)
-        pred = real_model(sample=sample, data_stats=real_data_stats)  # [N, T, 5]
+        pred, timing = measure_inference(
+            real_model, sample, real_data_stats, DEVICE,
+            warmup=args.warmup, repeats=args.repeats,
+        )  # [N, T, 5]: one full trajectory
+        timings.append(dict(run=run_name, **timing))
         target = sample.node_target
         coords0 = sample.node_features["coords"]
         pos_std = test_dataset.node_stats["pos_std"].to(DEVICE)
@@ -238,8 +305,27 @@ with torch.no_grad():
         pred_peak_stress = pred[:, :, 4].max().item()
         true_peak_stress = target[:, :, 4].max().item()
         stress_rel = 100.0 * abs(pred_peak_stress - true_peak_stress) / true_peak_stress
+        metrics.append(dict(
+            run=run_name, peak_displacement_pred_mm=pred_peak_disp,
+            peak_displacement_true_mm=true_peak_disp, displacement_relative_error_pct=disp_rel,
+            peak_strain_pred=pred_peak_strain, peak_strain_true=true_peak_strain,
+            strain_relative_error_pct=strain_rel,
+            peak_stress_pred=pred_peak_stress, peak_stress_true=true_peak_stress,
+            stress_relative_error_pct=stress_rel,
+        ))
 
         print(f"{run_name:<8}{pred_peak_disp:>16.1f}{true_peak_disp:>16.1f}{disp_rel:>11.2f}"
               f"{pred_peak_strain:>13.4f}{true_peak_strain:>13.4f}{strain_rel:>13.2f}"
               f"{pred_peak_stress:>13.4f}{true_peak_stress:>13.4f}{stress_rel:>13.2f}")
+        print(f"  {run_name}: median inference {timing['median_inference_ms']:.3f} ms, "
+              f"{timing['trajectories_per_second']:.2f} full trajectories/s "
+              f"({args.warmup} warmups, {args.repeats} timed forwards)")
 _log('cell 18: done')
+with (OUTPUT / "evaluation.csv").open("w", newline="") as stream:
+    writer = csv.DictWriter(stream, fieldnames=list(metrics[0]))
+    writer.writeheader()
+    writer.writerows(metrics)
+metadata.update(status="complete", checkpoint_epoch=epoch_loaded, total_seconds=time.time() - T0)
+(OUTPUT / "inference_timing.json").write_text(json.dumps(timings, indent=2) + "\n")
+(OUTPUT / "run.json").write_text(json.dumps(metadata, indent=2) + "\n")
+print("Saved artifacts to", OUTPUT)

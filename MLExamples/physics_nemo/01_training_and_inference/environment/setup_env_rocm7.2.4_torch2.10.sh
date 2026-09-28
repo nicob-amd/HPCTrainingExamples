@@ -10,12 +10,12 @@
 # entirely (2.9.1 has now worked on 7.2.1 AND, pending this control run,
 # 7.2.4; 2.10.0/2.11.0/2.13.0 have all crashed across 7.14.1 and 10.0.0).
 #
-# Usage (from physics_nemo/environment/):
+# Usage (from physics_nemo/01_training_and_inference/environment/):
 #   apptainer pull workshop_base_rocm724.sif docker://rocm/dev-ubuntu-22.04:7.2.4-complete
 #   apptainer exec --bind $(pwd)/..:/workshop workshop_base_rocm724.sif \
 #     bash /workshop/environment/setup_env_rocm7.2.4_torch2.10.sh
 #
-# Result: a venv at physics_nemo/environment/venv_rocm724_torch210 on the
+# Result: a venv at physics_nemo/01_training_and_inference/environment/venv_rocm724_torch210 on the
 # HOST filesystem (kept separate from the 2.9.1 venv so both can be
 # compared/kept side by side).
 
