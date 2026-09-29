@@ -92,24 +92,79 @@ final_disp = np.asarray(mesh.point_data[disp_fields[-1]])
 coords_final = coords0 + final_disp
 disp_mag = np.linalg.norm(final_disp, axis=-1)
 
+# The raw VTP bundles a few points that are not part of the crushable
+# structure and would otherwise show up as disconnected stray dots:
+#  (a) ~150 duplicate connector/weld nodes with no cell in this file's
+#      polygon list at all (isolated in the point-adjacency graph), and
+#  (b) a small (~48-point) rigid-wall/fixture mesh with its own cells but
+#      exactly zero displacement at every timestep -- present, but not part
+#      of the deforming assembly.
+# The bumper beam and its end brackets are assembled from several parts that
+# share no mesh nodes with each other (joined by welds, not shared vertices),
+# so they appear as separate connected components too -- keep all of those;
+# only drop components with no cells at all, or that never move.
+parent = np.arange(mesh.n_points)
+def _find(a):
+    while parent[a] != a:
+        parent[a] = parent[parent[a]]
+        a = parent[a]
+    return a
+def _union(a, b):
+    ra, rb = _find(a), _find(b)
+    if ra != rb:
+        parent[ra] = rb
+for i in range(mesh.n_cells):
+    pids = mesh.get_cell(i).point_ids
+    for p in pids[1:]:
+        _union(pids[0], p)
+roots = np.array([_find(i) for i in range(mesh.n_points)])
+root_ids, root_sizes = np.unique(roots, return_counts=True)
+max_disp_all = np.zeros(mesh.n_points)
+for k in disp_fields:
+    np.maximum(max_disp_all, np.linalg.norm(np.asarray(mesh.point_data[k]), axis=-1), out=max_disp_all)
+moving_roots = {r for r in root_ids
+                if root_sizes[root_ids == r][0] > 1 and max_disp_all[roots == r].max() > 1.0}
+structure_mask = np.array([r in moving_roots for r in roots])
+n_dropped = mesh.n_points - structure_mask.sum()
+if n_dropped:
+    print(f"Excluding {n_dropped} point(s) not part of the deforming structure "
+          f"(unconnected connector nodes / static fixture geometry) from the mesh plot.")
+structure_idx = np.where(structure_mask)[0]
+
 # Subsample points for a readable scatter (full mesh is ~14k nodes)
 rng = np.random.default_rng(0)
-idx = rng.choice(coords0.shape[0], size=min(4000, coords0.shape[0]), replace=False)
+idx = rng.choice(structure_idx, size=min(4000, len(structure_idx)), replace=False)
 
-fig = plt.figure(figsize=(10, 5))
+# The beam is long (~2 m) but thin (~150 mm), so matplotlib's default cubic
+# 3D box would squash it into a misleading blocky shape. set_box_aspect with
+# the actual per-axis data range keeps proportions true to the real geometry.
+import matplotlib.ticker as mticker
+def _style_3d_ax(ax, pts, title):
+    ranges = np.maximum(pts.max(axis=0) - pts.min(axis=0), 1e-6)
+    ax.set_box_aspect(tuple(ranges))
+    ax.set_title(title, pad=-4, fontsize=11)
+    ax.set_xlabel("x (mm)", labelpad=-2, fontsize=8)
+    ax.set_ylabel("y (mm)", labelpad=-2, fontsize=8)
+    ax.set_zlabel("z (mm)", labelpad=-6, fontsize=8)
+    ax.xaxis.set_major_locator(mticker.MaxNLocator(nbins=3))
+    ax.zaxis.set_major_locator(mticker.MaxNLocator(nbins=3))
+    ax.yaxis.set_major_locator(mticker.MaxNLocator(nbins=5))
+    ax.view_init(elev=16, azim=-58)
+    ax.tick_params(axis="both", labelsize=7, pad=-2)
+
+fig = plt.figure(figsize=(11, 3.6))
 
 ax1 = fig.add_subplot(1, 2, 1, projection="3d")
-ax1.scatter(coords0[idx, 0], coords0[idx, 1], coords0[idx, 2], s=1, c="gray")
-ax1.set_title("t=0 (undeformed)")
+ax1.scatter(coords0[idx, 0], coords0[idx, 1], coords0[idx, 2], s=2, c="gray")
+_style_3d_ax(ax1, coords0[idx], "t=0 (undeformed)")
 
 ax2 = fig.add_subplot(1, 2, 2, projection="3d")
 sc = ax2.scatter(coords_final[idx, 0], coords_final[idx, 1], coords_final[idx, 2],
-                  s=1, c=disp_mag[idx], cmap="inferno")
-ax2.set_title("t=0.5s (crushed), colored by |displacement|")
-fig.colorbar(sc, ax=ax2, shrink=0.6, label="displacement magnitude (mm)")
+                  s=2, c=disp_mag[idx], cmap="inferno")
+_style_3d_ax(ax2, coords_final[idx], "t=0.5s (crushed), colored by |displacement|")
+fig.colorbar(sc, ax=ax2, shrink=0.7, pad=0.1, label="displacement magnitude (mm)")
 
-plt.tight_layout()
-fig.savefig(OUTPUT / "mesh.png", dpi=150)
+fig.savefig(OUTPUT / "mesh.png", dpi=150, bbox_inches="tight")
 plt.close(fig)
 _log('cell 6: done')
 
