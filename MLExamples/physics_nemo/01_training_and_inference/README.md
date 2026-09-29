@@ -38,6 +38,7 @@ statistics. The full production training dataset is not included. The two evalua
 ├── checkpoint/        # supplied weights, statistics, and YAML configurations
 ├── src/               # model, data pipeline, loss, and measurement helpers
 ├── results/           # generated runs (created when running the example)
+├── reported_results/  # small artifacts copied from a run for durable in-repo linking
 └── TESTING.md         # historical system checks and troubleshooting
 ```
 
@@ -148,7 +149,7 @@ its plots inline. It does not produce the script's CSV files or completion metad
 
 ### Recording results on another system
 
-Status: not measured. Fill in after running on the target system.
+Status: measured 2026-09-28, run `first_run` (see [Configuration and provenance](#configuration-and-provenance)).
 
 #### Replacing Pending with measured values
 
@@ -183,43 +184,81 @@ For example, ask an agent:
 
 #### Configuration and provenance
 
-- Date, repository commit, and local changes:
-- Host, GPU, CPU, memory, and scheduler allocation:
-- Container image/digest, driver, ROCm, Python, PyTorch, PhysicsNeMo:
+- Date, repository commit, and local changes: 2026-09-28, commit `a4107ebd1e8202ec114cf74661906a2ecebf3a49`, clean working tree.
+- Host, GPU, CPU, memory, and scheduler allocation: Slurm node `ppac-pl1-s24-26`, partition `PPAC_MI300A_SPX` (192 CPUs, 514000 MB RAM, 4x GPU per node); job allocated with `--gpus=1`. Device reported by PyTorch: 1x AMD Instinct MI300A.
+- Container image/digest, driver, ROCm, Python, PyTorch, PhysicsNeMo: `environment/workshop_base_rocm10.sif` (built from `docker://rocm/dev-ubuntu-22.04:10.0.0-full`), ROCm `7.15.26333`, Python `3.12.14`, PyTorch `2.11.0+rocm10.0.0`, PhysicsNeMo `2.1.1`, PyVista `0.49.0`.
 - Exact command, environment overrides, optimizer, and epoch count:
-- Dataset/checkpoint identifiers and normalization files:
-- Run directory and console log:
+
+  ```bash
+  apptainer exec --rocm --bind "$(pwd):/workshop" --pwd /workshop \
+    --env FORCE_ADAM_MI300A=1 \
+    --env RANK=0 --env WORLD_SIZE=1 --env LOCAL_RANK=0 \
+    --env MASTER_ADDR=127.0.0.1 --env MASTER_PORT=29500 \
+    environment/workshop_base_rocm10.sif \
+    /workshop/environment/venv_rocm10/bin/python3 -u workshop_crash_surrogate.py \
+    --epochs 30 --warmup 3 --repeats 10 \
+    --output-dir results/first_run
+  ```
+
+  `FORCE_ADAM_MI300A=1` was set, so the toy loop used Adam rather than the configured Muon optimizer
+  (Muon's Newton-Schulz bf16 GEMMs hit a known hipBLASLt/MI300A-228CU tuning gap; see
+  [ROCm/rocm-systems#4084](https://github.com/ROCm/rocm-systems/issues/4084)). Toy epochs: 30.
+- Dataset/checkpoint identifiers and normalization files: supplied checkpoint
+  `checkpoint/checkpoints/checkpoint.0.200.pt` / `GeoTransolverOneShot.0.200.mdlus` (epoch 200,
+  experiment `Bumper-GeoFLARE-2D-Thickness`), normalized with `checkpoint/stats/*.json`. Toy training
+  used the bundled `data/vtp_train` (8 runs) with normalization recomputed into `toy_stats/*.json`.
+  Evaluation held out `run19` and `run201` from `data/vtp_holdout`.
+- Run directory and console log: `results/first_run/` (small artifacts copied to
+  [`reported_results/first_run/`](reported_results/first_run/)); console log
+  [`reported_results/first_run/first_run.log`](reported_results/first_run/first_run.log).
 
 #### Toy training
 
-Attach `training_loss.csv` and `training_loss.png`. Describe the loss trend and any instability.
-This is an eight-run mechanics demonstration; the final inference uses a separate checkpoint.
+See [`training_loss.csv`](reported_results/first_run/training_loss.csv) and
+[`training_loss.png`](reported_results/first_run/training_loss.png).
+
+![Toy training loss](reported_results/first_run/training_loss.png)
+
+Loss dropped sharply for the first ~10 epochs (3.85 → 0.29), then declined more gradually with two
+mild bumps around epochs 19–22 (0.24 → 0.28) before resuming its downward trend, ending at 0.181
+after 30 epochs. This matches the README's expectation that loss need not fall monotonically every
+epoch. This is an eight-run mechanics demonstration; the final inference below uses the separate
+200-epoch checkpoint, not this toy model.
+
+Reference mesh used for both parts:
+
+![Reference mesh](reported_results/first_run/mesh.png)
 
 #### Real model size and inference speed
 
 | Measurement | Value | Source |
 |---|---|---|
-| Model archive size, decimal GB | Pending | `run.json`: `model_archive_gb` |
-| Parameters and buffers, decimal GB | Pending | `run.json`: `model_tensor_gb` |
-| run19 median/min/max latency, ms | Pending | `inference_timing.json`, `run: run19`: `median_inference_ms` / `min_inference_ms` / `max_inference_ms` |
-| run201 median/min/max latency, ms | Pending | `inference_timing.json`, `run: run201`: same three fields |
-| run19 full trajectories per second | Pending | `inference_timing.json`, `run: run19`: `trajectories_per_second` |
-| run201 full trajectories per second | Pending | `inference_timing.json`, `run: run201`: `trajectories_per_second` |
-| Warmup and repetition counts, per case | Pending | `inference_timing.json`: `warmup` / `repeats`; report both cases if different |
+| Model archive size, decimal GB | 0.027182 | `run.json`: `model_archive_gb` |
+| Parameters and buffers, decimal GB | 0.027112 | `run.json`: `model_tensor_gb` |
+| run19 median/min/max latency, ms | 109.828 / 108.770 / 110.324 | `inference_timing.json`, `run: run19`: `median_inference_ms` / `min_inference_ms` / `max_inference_ms` |
+| run201 median/min/max latency, ms | 109.522 / 108.661 / 110.715 | `inference_timing.json`, `run: run201`: same three fields |
+| run19 full trajectories per second | 9.105 | `inference_timing.json`, `run: run19`: `trajectories_per_second` |
+| run201 full trajectories per second | 9.131 | `inference_timing.json`, `run: run201`: `trajectories_per_second` |
+| Warmup and repetition counts, per case | 3 warmups, 10 repeats (both cases) | `inference_timing.json`: `warmup` / `repeats` |
 
 Timing covers synchronized forward passes with inputs already on device. It excludes model loading,
 preprocessing, input transfers, and metric calculation. Archive size excludes optimizer state;
-parameter/buffer size is not peak GPU memory.
+parameter/buffer size is not peak GPU memory. Full data:
+[`inference_timing.json`](reported_results/first_run/inference_timing.json).
 
 #### Error against simulations
 
-Attach `evaluation.csv`. Report displacement, strain, and stress errors separately for run19 and
-run201, and state the metric definitions and units. Compare with historical checkpoint checks.
+Full data: [`evaluation.csv`](reported_results/first_run/evaluation.csv). Displacement is peak
+magnitude in mm over all nodes and times; strain and stress use the model/datapipe channel
+representation (see caveat below). Each relative error is
+`100 * abs(prediction - reference) / reference`. These measurements match the historical values in
+[Where the numbers come from](#where-the-numbers-come-from), since the same checkpoint and holdout
+simulations are used.
 
 | Simulation | Peak displacement error (%) | Peak strain error (%) | Peak stress error (%) |
 |---|---:|---:|---:|
-| run19 | Pending | Pending | Pending |
-| run201 | Pending | Pending | Pending |
+| run19 | 0.57 | 0.75 | 11.59 |
+| run201 | 0.26 | 6.49 | 12.55 |
 
 Select rows by `run` in `evaluation.csv`. The corresponding columns are
 `displacement_relative_error_pct`, `strain_relative_error_pct`, and `stress_relative_error_pct`.
