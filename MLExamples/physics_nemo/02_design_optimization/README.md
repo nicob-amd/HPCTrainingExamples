@@ -23,7 +23,10 @@ Inside that container on an allocated GPU node, start from
 ```bash
 export RANK=0 WORLD_SIZE=1 LOCAL_RANK=0
 export MASTER_ADDR=127.0.0.1 MASTER_PORT=29500
-"$HOME/venvs/physicsnemo-rocm10/bin/python3" -u optimize.py --limit-mm 350 --output-dir results/first_run
+mkdir -p results
+set -o pipefail
+"$HOME/venvs/physicsnemo-rocm10/bin/python3" -u optimize.py \
+  --limit-mm 350 --output-dir results/first_run 2>&1 | tee results/first_run.log
 ```
 
 The output directory must be new. Use another name for each run, such as
@@ -53,14 +56,65 @@ and `--wall-position` within `[0,240]` to explore other loads. Each invocation f
 one load case; it does not enforce constraints across all possible impacts.
 The 350 mm default is an illustrative surrogate constraint, not an engineering standard.
 
-## Reference results
+## Results and artifacts
 
-These plots use the [saved reference run](sample_results/result.json) and its
-[25-point grid](sample_results/grid.csv), with a 350 mm limit and a safety factor of one.
+Like exercise 1, the script writes numerical results and figures to `results/<run-id>/`.
+Generated runs are ignored by Git. The shell command captures the console log beside
+the run directory. The script does not edit this README automatically; publish selected
+small artifacts under `reported_results/<run-id>/` when reporting a run.
+
+### Recording results on another system
+
+After a run, you or an agent can update this section using the same procedure as exercise 1:
+
+1. Select one run directory, such as `results/first_run/`. Check the process exit code,
+   `status: complete` in `result.json`, and the presence of the CSV, configuration, and plots.
+   Report `solver_success` and `candidate.predicted_feasible` separately: completion does
+   not imply a successful search or a physically validated design.
+2. Fill the result table using the exact JSON fields below. Describe the finite-difference
+   comparison using `nominal_gradient` and `gradient_checks` from that same run.
+3. Record the date, repository commit, software, device, load case, displacement limit,
+   safety factor, and launch command. Obtain missing host, allocation, and container
+   details from the target system; mark unavailable details as unrecorded.
+4. Copy that run's small JSON, CSV, YAML, PNG files and console log into
+   `reported_results/<run-id>/`. Embed its `design_space.png` and `mass_displacement.png`
+   with relative links. Do not combine one run's figures with another run's measurements.
+5. Update the status, captions, and provenance to describe the selected run. Retain earlier
+   measurements as a clearly labeled historical comparison if useful.
+
+For example, ask an agent:
+
+> Update this README from `results/first_run/`. Verify completion and report optimizer
+> success, predicted feasibility, the thickness pair, mass proxy, peak displacement,
+> constraint violation, and gradient checks. Copy the supporting artifacts and log into
+> `reported_results/first_run/`, embed the saved plots, and record configuration and
+> provenance. Report missing information explicitly and preserve earlier results as a
+> separate comparison. Do not label the candidate FEA-validated without solver evidence.
+
+### Reported reference run
+
+Status: measured 2026-09-30, run `reference_run`. These are the earlier cluster measurements,
+not a report of a later user run. Supporting files are in
+[`reported_results/reference_run/`](reported_results/reference_run/).
+
+| Quantity | Result | Field in `result.json` |
+|---|---:|---|
+| Nominal predicted peak | 344.817 mm | `nominal_peak_mm` |
+| Crash-box thickness scale | 0.700000 | `candidate.crash_box` |
+| Beam thickness scale | 1.100974 | `candidate.beam` |
+| Mass proxy | 0.900487 | `candidate.mass_proxy` |
+| Margin-adjusted peak | 350.000 mm | `candidate.adjusted_peak_mm` |
+| Constraint violation | 0.000 mm | `candidate.violation_mm` |
+| Optimizer success | true | `solver_success` |
+| Predicted feasible | true | `candidate.predicted_feasible` |
+| FEA validated | false | `fea_validated` |
+
+These plots use the [saved reference run](reported_results/reference_run/result.json) and its
+[25-point grid](reported_results/reference_run/grid.csv), with a 350 mm limit and a safety factor of one.
 They are generated from recorded surrogate predictions; no additional FEA was run.
 New optimization runs generate the same plots using their own results.
 
-![Thickness design space with predicted displacement, feasible grid points, nominal design, and optimizer candidate](sample_results/design_space.png)
+![Thickness design space with predicted displacement, feasible grid points, nominal design, and optimizer candidate](reported_results/reference_run/design_space.png)
 
 Circles mark predicted-feasible grid points; crosses exceed the displacement limit.
 The white line interpolates the coarse grid at 350 mm, so it is only a visual guide.
@@ -68,13 +122,29 @@ The red star is the candidate evaluated directly by the model: crash-box scale *
 and beam scale **1.101**. A small difference between the star and interpolated line
 is expected with this coarse grid. The plot does not establish a global optimum.
 
-![Mass proxy versus predicted peak displacement, comparing the grid, nominal design, and optimizer candidate](sample_results/mass_displacement.png)
+![Mass proxy versus predicted peak displacement, comparing the grid, nominal design, and optimizer candidate](reported_results/reference_run/mass_displacement.png)
 
 Lower mass lies to the left; predictions below the dashed limit satisfy the surrogate
 constraint. The candidate has mass proxy **0.9005**, about **9.95% below nominal**, with
 predicted peak displacement **350.0 mm**. Different material distributions can have
 the same mass proxy but different displacement predictions. Physical mass savings
 and crash safety still require independent engineering validation.
+
+#### Configuration and provenance
+
+- Measured 2026-09-30 on one GPU in the `MI355x` partition; the runtime reports
+  `AMD Radeon Graphics`. Host name and container digest were not recorded.
+- PyTorch `2.9.1+rocm7.2.1.gitff65f5bc`, PhysicsNeMo `2.1.1`, SciPy `1.18.0`.
+  This used the existing cluster environment, not the later shared ROCm 10 installer.
+- Epoch 200 checkpoint; exact SHA256 is in `result.json`. Load: velocity `-7`, wall
+  position `0`; displacement limit `350 mm`; safety factor `1`; grid `5 × 5`;
+  maximum SLSQP iterations `40`. The returned solution took three iterations.
+- The original output directory was named `sample_results`; files were subsequently
+  moved here for reporting. Its absolute path remains in the JSON as original provenance.
+  Plots were generated afterward from those saved files. The raw launch log and exact
+  source commit were not retained alongside this run.
+- Numerical gradient comparison and unsuccessful-search checks are documented in
+  [VALIDATION.md](VALIDATION.md).
 
 To generate plots from an earlier run without loading the model or using a GPU:
 

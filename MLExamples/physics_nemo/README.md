@@ -102,7 +102,7 @@ changing this organization.
 The training and inference example includes a supplied checkpoint and
 [verification notes](01_training_and_inference/TESTING.md). The optimization example includes
 [GPU validation notes](02_design_optimization/VALIDATION.md) and
-[saved results](02_design_optimization/sample_results/result.json) from that checkpoint,
+[saved results](02_design_optimization/reported_results/reference_run/result.json) from that checkpoint,
 including the configuration, gradient checks, and optimizer outcome. These results describe
 surrogate predictions and a mass proxy, not FEA-confirmed safety or measured physical mass savings.
 

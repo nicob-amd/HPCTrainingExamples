@@ -12,7 +12,7 @@ To reproduce it, select a new output directory:
 python3 -u optimize.py --output-dir results/reproduce
 ```
 
-The [saved JSON](sample_results/result.json) records software versions, device,
+The [saved JSON](reported_results/reference_run/result.json) records software versions, device,
 configuration arguments, and checkpoint SHA256. The model loaded epoch 200 from
 application 01 without training. The grid contains 25 evaluations, 14 predicted feasible.
 
@@ -44,7 +44,7 @@ python3 -u optimize.py --limit-mm 1 --grid-size 2 --maxiter 3 \
 
 It reported zero feasible grid points, `solver_success: false` (iteration limit),
 `predicted_feasible: false`, and `298.1271 mm` violation. The
-[saved result](sample_results/infeasible_result.json) confirms that this unsuccessful
+[saved result](reported_results/infeasible_check/result.json) confirms that this unsuccessful
 search does not receive a feasible label; it does not prove global infeasibility.
 
 The dependency-free `--help` path and repository whitespace checks also passed.

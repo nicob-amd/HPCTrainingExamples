@@ -127,7 +127,7 @@ def main():
     peak, grad = evaluate(result.x, True)
     violation = max(0., args.safety_factor*peak-args.limit_mm)
     predicted_feasible = violation <= .01 and bool(np.all(result.x >= .7) and np.all(result.x <= 1.3))
-    metadata.update(status='complete', nominal_peak_mm=nominal, nominal_gradient=automatic.tolist(),
+    metadata.update(status='evaluated', nominal_peak_mm=nominal, nominal_gradient=automatic.tolist(),
                     gradient_checks=checks, best_feasible_grid= min(feasible, key=lambda r: r['mass_proxy']) if feasible else None,
                     candidate=dict(crash_box=float(result.x[0]), beam=float(result.x[1]), mass_proxy=float(np.mean(result.x)),
                                    peak_mm=peak, adjusted_peak_mm=args.safety_factor*peak, gradient=grad.tolist(),
@@ -137,6 +137,8 @@ def main():
     (output / 'result.json').write_text(json.dumps(metadata, indent=2, allow_nan=False)+'\n')
     from plot_results import plot_results
     plots = plot_results(output)
+    metadata.update(status='complete', plots=plots)
+    (output / 'result.json').write_text(json.dumps(metadata, indent=2, allow_nan=False)+'\n')
     print('Plots: ' + ', '.join(plots), flush=True)
     print(json.dumps({k: metadata[k] for k in ('candidate', 'solver_success', 'solver_message', 'fea_validated')}, indent=2))
     print(f'Results: {output}\nCandidate requires independent FEA validation. No global optimum is established.')
