@@ -20,6 +20,27 @@ This illustrates the bumper example; it is not an output from the workshop measu
 
 ## Workshop progression
 
+For the prebuilt ROCm 10 PyTorch container with `/opt/venv/bin/python3`, run
+the shared installer from this directory inside the container:
+
+```bash
+bash setup_env_rocm10_pytorch_venv.sh
+```
+
+It creates `$HOME/venvs/physicsnemo-rocm10`, reuses the container's PyTorch, and
+installs the workshop dependencies including SciPy. Pass a different new directory
+as the first argument to change the destination. Use the environment's Python
+directly, without setting `PYTHONPATH`:
+
+```bash
+cd 02_design_optimization
+"$HOME/venvs/physicsnemo-rocm10/bin/python3" -u optimize.py
+```
+
+The environment persists in your home directory and must be used inside the same
+container image. See the [optimization setup](02_design_optimization/README.md#run)
+for details and the [training setup](01_training_and_inference/README.md) for other images.
+
 Start with **training and inference**: use PhysicsNeMo to predict bumper deformation, plastic
 strain, and stress from a mesh and design and impact parameters. Train a small toy model, then
 load the separate supplied checkpoint and measure its size, inference speed, and error against

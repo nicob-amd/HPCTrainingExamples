@@ -18,7 +18,7 @@ this installer **inside the container** to create an environment in your home
 directory, outside the checkout:
 
 ```bash
-bash /examples/01_training_and_inference/environment/setup_env_rocm10_pytorch_venv.sh
+bash /examples/setup_env_rocm10_pytorch_venv.sh
 ```
 
 It defaults to `$HOME/venvs/physicsnemo-rocm10`; pass a different new directory as
