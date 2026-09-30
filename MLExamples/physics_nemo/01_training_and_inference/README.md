@@ -26,6 +26,9 @@ Part 1 trains on eight bundled runs for 30 epochs by default. Part 2 loads a sep
 statistics. The full production training dataset is not included. The two evaluation cases are
 `run19` and `run201`.
 
+Continue with [design optimization](../02_design_optimization/) to reuse this checkpoint
+for a two-parameter constrained search with automatic differentiation.
+
 ## Folder layout
 
 ```text
