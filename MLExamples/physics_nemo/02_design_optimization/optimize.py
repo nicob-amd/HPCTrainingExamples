@@ -19,7 +19,7 @@ def main():
     parser.add_argument('--wall-position', type=float, default=0.)
     parser.add_argument('--grid-size', type=int, default=5)
     parser.add_argument('--maxiter', type=int, default=40)
-    parser.add_argument('--output-dir', type=Path)
+    parser.add_argument('--output-dir', type=Path, help='New results directory relative to the caller; default: timestamped results/ directory')
     args = parser.parse_args()
     import math
     if not all(math.isfinite(v) for v in (args.limit_mm, args.safety_factor, args.velocity, args.wall_position)):
@@ -32,6 +32,7 @@ def main():
     source = root.parent / '01_training_and_inference'
     output = args.output_dir.resolve() if args.output_dir else root / 'results' / datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S%fZ')
     output.mkdir(parents=True, exist_ok=False)
+    print(f'Results directory: {output}', flush=True)
     # Existing data/config paths are relative to application 01.
     os.chdir(source)
     sys.path.insert(0, str(source / 'src'))
@@ -134,6 +135,9 @@ def main():
                     solver_success=bool(result.success), solver_message=str(result.message), iterations=int(result.nit),
                     fea_validated=False, total_seconds=time.perf_counter()-started)
     (output / 'result.json').write_text(json.dumps(metadata, indent=2, allow_nan=False)+'\n')
+    from plot_results import plot_results
+    plots = plot_results(output)
+    print('Plots: ' + ', '.join(plots), flush=True)
     print(json.dumps({k: metadata[k] for k in ('candidate', 'solver_success', 'solver_message', 'fea_validated')}, indent=2))
     print(f'Results: {output}\nCandidate requires independent FEA validation. No global optimum is established.')
 

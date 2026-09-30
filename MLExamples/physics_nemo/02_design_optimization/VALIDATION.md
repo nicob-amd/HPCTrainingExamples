@@ -50,3 +50,13 @@ search does not receive a feasible label; it does not prove global infeasibility
 The dependency-free `--help` path and repository whitespace checks also passed.
 Independent FEA confirmation and testing on other software stacks remain outside
 these recorded checks.
+
+## Plot generation
+
+The README figures were generated from the saved `grid.csv` and `result.json`
+using `plot_results.py` with Matplotlib 3.11.1. This is postprocessing of the
+recorded run, with no additional model inference or changes to its measurements.
+Both figures were visually inspected. Plot generation was also exercised on the
+saved unsuccessful-search outputs, where every grid point exceeds the limit.
+The plotting utility needs no GPU and can be run on results from earlier versions
+of the optimization script.

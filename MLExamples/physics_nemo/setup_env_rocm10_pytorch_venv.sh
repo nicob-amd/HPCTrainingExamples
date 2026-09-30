@@ -103,5 +103,5 @@ printf '  export RANK=0 WORLD_SIZE=1 LOCAL_RANK=0 MASTER_ADDR=127.0.0.1 MASTER_P
 printf 'Exercise 1 (training/inference; Adam for the MI300A toy loop):\n'
 printf '  FORCE_ADAM_MI300A=1 %q -u 01_training_and_inference/workshop_crash_surrogate.py --epochs 30\n' "$PY"
 printf 'Exercise 2 (design optimization):\n'
-printf '  %q -u 02_design_optimization/optimize.py --limit-mm 350\n' "$PY"
+printf '  %q -u 02_design_optimization/optimize.py --limit-mm 350 --output-dir 02_design_optimization/results/first_run\n' "$PY"
 printf 'Optional activation:\n  source %q\n' "$ENV_DIR/bin/activate"

@@ -23,8 +23,24 @@ Inside that container on an allocated GPU node, start from
 ```bash
 export RANK=0 WORLD_SIZE=1 LOCAL_RANK=0
 export MASTER_ADDR=127.0.0.1 MASTER_PORT=29500
-"$HOME/venvs/physicsnemo-rocm10/bin/python3" -u optimize.py --limit-mm 350
+"$HOME/venvs/physicsnemo-rocm10/bin/python3" -u optimize.py --limit-mm 350 --output-dir results/first_run
 ```
+
+The output directory must be new. Use another name for each run, such as
+`results/mi300a_run2`. The script prints its absolute location at startup and saves:
+
+```text
+results/first_run/
+├── result.json              # candidate, gradients, feasibility, software, checkpoint hash
+├── grid.csv                 # evaluated thickness pairs and predictions
+├── checkpoint_config.yaml   # resolved model configuration
+├── design_space.png         # thickness grid, displacement limit, candidate
+└── mass_displacement.png    # mass versus displacement comparison
+```
+
+If `--output-dir` is omitted, a timestamped directory is created under this exercise's
+`results/` folder. An explicit relative path is resolved from the directory where you
+launch the command.
 
 No activation or `PYTHONPATH` setting is needed. The environment persists in your home
 directory and must be used inside the same image. CPU execution is supported but may
@@ -36,6 +52,37 @@ iterations, and thickness bounds `[0.7, 1.3]`. Change `--velocity` within `[-7,-
 and `--wall-position` within `[0,240]` to explore other loads. Each invocation fixes
 one load case; it does not enforce constraints across all possible impacts.
 The 350 mm default is an illustrative surrogate constraint, not an engineering standard.
+
+## Reference results
+
+These plots use the [saved reference run](sample_results/result.json) and its
+[25-point grid](sample_results/grid.csv), with a 350 mm limit and a safety factor of one.
+They are generated from recorded surrogate predictions; no additional FEA was run.
+New optimization runs generate the same plots using their own results.
+
+![Thickness design space with predicted displacement, feasible grid points, nominal design, and optimizer candidate](sample_results/design_space.png)
+
+Circles mark predicted-feasible grid points; crosses exceed the displacement limit.
+The white line interpolates the coarse grid at 350 mm, so it is only a visual guide.
+The red star is the candidate evaluated directly by the model: crash-box scale **0.700**
+and beam scale **1.101**. A small difference between the star and interpolated line
+is expected with this coarse grid. The plot does not establish a global optimum.
+
+![Mass proxy versus predicted peak displacement, comparing the grid, nominal design, and optimizer candidate](sample_results/mass_displacement.png)
+
+Lower mass lies to the left; predictions below the dashed limit satisfy the surrogate
+constraint. The candidate has mass proxy **0.9005**, about **9.95% below nominal**, with
+predicted peak displacement **350.0 mm**. Different material distributions can have
+the same mass proxy but different displacement predictions. Physical mass savings
+and crash safety still require independent engineering validation.
+
+To generate plots from an earlier run without loading the model or using a GPU:
+
+```bash
+"$HOME/venvs/physicsnemo-rocm10/bin/python3" plot_results.py results/first_run
+```
+
+This writes or replaces the two PNG files and preserves the saved numerical results.
 
 ## Mathematical problem
 
@@ -129,7 +176,8 @@ Each run creates a new timestamped `results/` directory; `--output-dir` selects 
 directory relative to the caller. Alongside `grid.csv`, `checkpoint_config.yaml` records
 the resolved configuration, and `result.json` records the checkpoint SHA256, software
 and device, arguments, gradient checks, best feasible grid point, candidate, optimizer
-termination, and elapsed time. Console output includes:
+termination, and elapsed time (excluding plot generation). The script also saves
+`design_space.png` and `mass_displacement.png`. Console output includes:
 
 ```text
 Loaded epoch ... on ...; checkpoint SHA256 ...

@@ -65,7 +65,7 @@ FORCE_ADAM_MI300A=1 "$HOME/venvs/physicsnemo-rocm10/bin/python3" -u 01_training_
 Or run exercise 2:
 
 ```bash
-"$HOME/venvs/physicsnemo-rocm10/bin/python3" -u 02_design_optimization/optimize.py --limit-mm 350
+"$HOME/venvs/physicsnemo-rocm10/bin/python3" -u 02_design_optimization/optimize.py --limit-mm 350 --output-dir 02_design_optimization/results/first_run
 ```
 
 Neither command needs activation or a `PYTHONPATH` setting. The environment
