@@ -182,21 +182,20 @@ For example, ask an agent:
 
 #### Configuration and provenance
 
-The following records the original 2026-09-28 run. Its old image and environment paths
-are historical provenance, not current setup instructions; use the shared setup above.
+The measurements below come from the original 2026-09-28 run. The command shown
+uses the current shared Python environment with the same exercise arguments;
+it does not imply that these historical measurements were produced by that environment.
 
 - Date, repository commit, and local changes: 2026-09-28, commit `a4107ebd1e8202ec114cf74661906a2ecebf3a49`, clean working tree.
 - Host, GPU, CPU, memory, and scheduler allocation: Slurm node `ppac-pl1-s24-26`, partition `PPAC_MI300A_SPX` (192 CPUs, 514000 MB RAM, 4x GPU per node); job allocated with `--gpus=1`. Device reported by PyTorch: 1x AMD Instinct MI300A.
-- Container image/digest, driver, ROCm, Python, PyTorch, PhysicsNeMo: `environment/workshop_base_rocm10.sif` (built from `docker://rocm/dev-ubuntu-22.04:10.0.0-full`), ROCm `7.15.26333`, Python `3.12.14`, PyTorch `2.11.0+rocm10.0.0`, PhysicsNeMo `2.1.1`, PyVista `0.49.0`.
-- Exact command, environment overrides, optimizer, and epoch count:
+- Original container/software: image built from `docker://rocm/dev-ubuntu-22.04:10.0.0-full`, ROCm `7.15.26333`, Python `3.12.14`, PyTorch `2.11.0+rocm10.0.0`, PhysicsNeMo `2.1.1`, PyVista `0.49.0`.
+- Current command with the same exercise arguments, from this folder inside the container after the shared environment setup:
 
   ```bash
-  apptainer exec --rocm --bind "$(pwd):/workshop" --pwd /workshop \
-    --env FORCE_ADAM_MI300A=1 \
-    --env RANK=0 --env WORLD_SIZE=1 --env LOCAL_RANK=0 \
-    --env MASTER_ADDR=127.0.0.1 --env MASTER_PORT=29500 \
-    environment/workshop_base_rocm10.sif \
-    /workshop/environment/venv_rocm10/bin/python3 -u workshop_crash_surrogate.py \
+  export RANK=0 WORLD_SIZE=1 LOCAL_RANK=0
+  export MASTER_ADDR=127.0.0.1 MASTER_PORT=29500
+  export FORCE_ADAM_MI300A=1
+  "$HOME/venvs/physicsnemo-rocm10/bin/python3" -u workshop_crash_surrogate.py \
     --epochs 30 --warmup 3 --repeats 10 \
     --output-dir results/first_run
   ```
