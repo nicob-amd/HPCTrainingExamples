@@ -13,6 +13,30 @@ with displacement, plastic strain, and stress outputs; this objective uses displ
 
 ## Run
 
+If you use the prebuilt ROCm 10 PyTorch image with `/opt/venv/bin/python3`, run
+this installer **inside the container** to create an environment in your home
+directory, outside the checkout:
+
+```bash
+bash /examples/01_training_and_inference/environment/setup_env_rocm10_pytorch_venv.sh
+```
+
+It defaults to `$HOME/venvs/physicsnemo-rocm10`; pass a different new directory as
+its first argument if needed. It reuses the image's PyTorch and installs the
+additional dependencies, including SciPy. It registers the container packages in
+the new environment so no `PYTHONPATH` setting is needed. Run directly:
+
+```bash
+"$HOME/venvs/physicsnemo-rocm10/bin/python3" -u optimize.py --limit-mm 350
+```
+
+The environment persists when you exit Apptainer. Use it inside the same image
+with your home directory mounted. In a fresh shell, no activation is needed when
+using the full Python path above. If the shell already has a `PYTHONPATH` from an
+older setup, unset it once to avoid mixing those packages into the new environment.
+The installer refuses to overwrite an existing directory. This setup path's shell
+syntax has been checked; the full install still needs verification in that image.
+
 Prepare the environment and data using [application 01's setup instructions](../01_training_and_inference/README.md).
 The environment also needs SciPy (`python3 -m pip install scipy` in that environment
 if it is missing). Run with a prepared Python environment on an allocated
