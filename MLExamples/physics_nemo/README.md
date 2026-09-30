@@ -18,7 +18,25 @@ This illustrates the bumper example; it is not an output from the workshop measu
 | [02_design_optimization](02_design_optimization) | Optimize independent crash-box and beam thicknesses using the supplied checkpoint and automatic derivatives | Available |
 | [03_inverse_problems](03_inverse_problems) | Infer simulation inputs from observations | Outline |
 
-## Workshop progression
+## Shared environment
+
+Use the prebuilt ROCm 10 PyTorch image. If you do not already have it, pull it
+to a directory outside the checkout on the host:
+
+```bash
+mkdir -p "$HOME/containers"
+apptainer pull "$HOME/containers/workshop_rocm10_pytorch.sif" docker://rocm/pytorch:rocm10.0_ubuntu24.04_py3.12_pytorch_release_2.11.0
+```
+
+From `MLExamples/physics_nemo` on an allocated GPU node, enter the container:
+
+```bash
+apptainer shell --rocm --bind "$(pwd):/examples" --pwd /examples "$HOME/containers/workshop_rocm10_pytorch.sif"
+```
+
+Substitute your existing image path if it differs. Your home directory must be mounted
+(Apptainer normally mounts it automatically). Clear any `PYTHONPATH` left from an older
+installation before setting up or running the exercises: `unset PYTHONPATH`.
 
 For the prebuilt ROCm 10 PyTorch container with `/opt/venv/bin/python3`, run
 the shared installer from this directory inside the container:
@@ -52,8 +70,12 @@ Or run exercise 2:
 
 Neither command needs activation or a `PYTHONPATH` setting. The environment
 persists in your home directory and must be used inside the same
-container image. See the [optimization setup](02_design_optimization/README.md#run)
-for details and the [training setup](01_training_and_inference/README.md) for other images.
+container image. Setup is required only once; future container sessions can use the
+environment's Python directly. The installer refuses to overwrite an existing directory.
+See the [optimization instructions](02_design_optimization/README.md#run) and
+[training instructions](01_training_and_inference/README.md#setup-and-run) for exercise options.
+
+## Workshop progression
 
 Start with **training and inference**: use PhysicsNeMo to predict bumper deformation, plastic
 strain, and stress from a mesh and design and impact parameters. Train a small toy model, then

@@ -36,7 +36,6 @@ for a two-parameter constrained search with automatic differentiation.
 ├── README.md
 ├── workshop_crash_surrogate.py
 ├── workshop_crash_surrogate.ipynb
-├── environment/       # installers and container recipes
 ├── data/              # eight training runs, two holdouts, global features
 ├── checkpoint/        # supplied weights, statistics, and YAML configurations
 ├── src/               # model, data pipeline, loss, and measurement helpers
@@ -47,45 +46,41 @@ for a two-parameter constrained search with automatic differentiation.
 
 ## Setup and run
 
-Run these commands from `MLExamples/physics_nemo/01_training_and_inference`. The ROCm 10 installer
-targets gfx942 (MI300A/MI300X), Python 3.12, PyTorch 2.11.0, and PhysicsNeMo 2.1.1. Review the
-installer for another GPU or software stack. See [TESTING.md](TESTING.md) for environment variants
-and historical compatibility checks.
+Use the [shared environment setup](../README.md#shared-environment) in the parent
+`physics_nemo` directory. It creates a home-directory environment with the dependencies
+for both exercises, including SciPy, and reuses the prebuilt ROCm 10 PyTorch container.
+There is no separate environment to install for this exercise.
+
+Inside that container on an allocated GPU node, start from
+`MLExamples/physics_nemo/01_training_and_inference`:
 
 ```bash
-cd environment
-apptainer pull workshop_base_rocm10.sif docker://rocm/dev-ubuntu-22.04:10.0.0-full
-apptainer exec --bind "$(pwd)/..:/workshop" workshop_base_rocm10.sif \
-  bash /workshop/environment/setup_env_rocm10.sh
-cd ..
-```
-
-On an allocated GPU node:
-
-```bash
+export RANK=0 WORLD_SIZE=1 LOCAL_RANK=0
+export MASTER_ADDR=127.0.0.1 MASTER_PORT=29500
+export FORCE_ADAM_MI300A=1
 mkdir -p results
 set -o pipefail
-apptainer exec --rocm --bind "$(pwd):/workshop" --pwd /workshop \
-  --env FORCE_ADAM_MI300A=1 \
-  --env RANK=0 --env WORLD_SIZE=1 --env LOCAL_RANK=0 \
-  --env MASTER_ADDR=127.0.0.1 --env MASTER_PORT=29500 \
-  environment/workshop_base_rocm10.sif \
-  /workshop/environment/venv_rocm10/bin/python3 -u workshop_crash_surrogate.py \
+"$HOME/venvs/physicsnemo-rocm10/bin/python3" -u workshop_crash_surrogate.py \
   --epochs 30 --warmup 3 --repeats 10 \
   --output-dir results/first_run 2>&1 | tee results/first_run.log
 ```
 
-`FORCE_ADAM_MI300A=1` selects Adam for the toy loop; omit it to exercise the configured Muon
-optimizer. The other environment variables establish a single-process checkpoint-loading context
-under Slurm. With a prepared Python environment, use:
+`FORCE_ADAM_MI300A=1` selects Adam for the toy loop; omit it to exercise the configured
+Muon optimizer. The rank variables establish a single-process checkpoint-loading context
+under Slurm. No activation or `PYTHONPATH` setting is needed.
+
+The script creates a timestamped results directory by default. An explicit
+`--output-dir` must be new. `--help` works without the ML dependencies.
+
+For the notebook, launch Jupyter with the same environment from this exercise's folder:
 
 ```bash
-python3 workshop_crash_surrogate.py --epochs 30 --warmup 3 --repeats 10
+"$HOME/venvs/physicsnemo-rocm10/bin/python3" -m jupyter lab --no-browser --ip=0.0.0.0
 ```
 
-The script creates a timestamped results directory by default. An explicit `--output-dir` must be
-new. `--help` works without the ML dependencies. Launch Jupyter from this application folder for
-the notebook. Its timings and size measurements appear inline; use the script for artifact exports.
+Select a kernel using this environment. Notebook timings and size measurements appear
+inline; use the script for artifact exports. See [TESTING.md](TESTING.md) for historical
+compatibility checks and troubleshooting.
 
 ## Configuration
 
@@ -96,7 +91,7 @@ the notebook. Its timings and size measurements appear inline; use the script fo
 | `checkpoint/config.yaml` | Architecture and evaluation data paths for the supplied checkpoint |
 | `checkpoint/stats/` | Original normalization required by that checkpoint |
 | `--warmup`, `--repeats` | Warmup and timed forwards per held-out simulation; defaults 3 and 10 |
-| `environment/setup_env_rocm10.sh` | Software versions and GPU architecture |
+| [`../setup_env_rocm10_pytorch_venv.sh`](../setup_env_rocm10_pytorch_venv.sh) | Shared dependencies; uses the container's ROCm PyTorch |
 
 The evaluation config retains production training settings but points to the bundled holdouts. It
 cannot reproduce the full training run by itself. The ROCm radius-search patch is loaded before
@@ -186,6 +181,9 @@ For example, ask an agent:
 > results as a separate comparison.
 
 #### Configuration and provenance
+
+The following records the original 2026-09-28 run. Its old image and environment paths
+are historical provenance, not current setup instructions; use the shared setup above.
 
 - Date, repository commit, and local changes: 2026-09-28, commit `a4107ebd1e8202ec114cf74661906a2ecebf3a49`, clean working tree.
 - Host, GPU, CPU, memory, and scheduler allocation: Slurm node `ppac-pl1-s24-26`, partition `PPAC_MI300A_SPX` (192 CPUs, 514000 MB RAM, 4x GPU per node); job allocated with `--gpus=1`. Device reported by PyTorch: 1x AMD Instinct MI300A.

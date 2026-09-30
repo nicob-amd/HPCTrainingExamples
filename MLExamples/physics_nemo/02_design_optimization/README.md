@@ -13,55 +13,22 @@ with displacement, plastic strain, and stress outputs; this objective uses displ
 
 ## Run
 
-If you use the prebuilt ROCm 10 PyTorch image with `/opt/venv/bin/python3`, run
-this installer **inside the container** to create an environment in your home
-directory, outside the checkout:
+Create the environment once using the [shared setup](../README.md#shared-environment)
+in the parent `physics_nemo` directory. It includes SciPy and uses the prebuilt
+ROCm 10 PyTorch container. Both exercises use the same home-directory environment.
+
+Inside that container on an allocated GPU node, start from
+`MLExamples/physics_nemo/02_design_optimization`:
 
 ```bash
-bash /examples/setup_env_rocm10_pytorch_venv.sh
-```
-
-It defaults to `$HOME/venvs/physicsnemo-rocm10`; pass a different new directory as
-its first argument if needed. It reuses the image's PyTorch and installs the
-additional dependencies, including SciPy. It registers the container packages in
-the new environment so no `PYTHONPATH` setting is needed. Run directly:
-
-```bash
+export RANK=0 WORLD_SIZE=1 LOCAL_RANK=0
+export MASTER_ADDR=127.0.0.1 MASTER_PORT=29500
 "$HOME/venvs/physicsnemo-rocm10/bin/python3" -u optimize.py --limit-mm 350
 ```
 
-The environment persists when you exit Apptainer. Use it inside the same image
-with your home directory mounted. In a fresh shell, no activation is needed when
-using the full Python path above. If the shell already has a `PYTHONPATH` from an
-older setup, unset it once to avoid mixing those packages into the new environment.
-The installer refuses to overwrite an existing directory. This setup path's shell
-syntax has been checked; the full install still needs verification in that image.
-
-Prepare the environment and data using [application 01's setup instructions](../01_training_and_inference/README.md).
-The environment also needs SciPy (`python3 -m pip install scipy` in that environment
-if it is missing). Run with a prepared Python environment on an allocated
-GPU node (CPU is supported but may be slow):
-
-```bash
-cd MLExamples/physics_nemo/02_design_optimization
-RANK=0 WORLD_SIZE=1 LOCAL_RANK=0 MASTER_ADDR=127.0.0.1 MASTER_PORT=29500 \
-  python3 -u optimize.py --limit-mm 350
-```
-
-For the ROCm 10 container prepared by application 01, start in `physics_nemo/` and bind
-both applications so the existing checkpoint remains accessible:
-
-```bash
-apptainer exec --rocm --bind "$(pwd):/examples" --pwd /examples/02_design_optimization \
-  --env RANK=0 --env WORLD_SIZE=1 --env LOCAL_RANK=0 \
-  --env MASTER_ADDR=127.0.0.1 --env MASTER_PORT=29500 \
-  01_training_and_inference/environment/workshop_base_rocm10.sif \
-  /examples/01_training_and_inference/environment/venv_rocm10/bin/python3 -u \
-  optimize.py --limit-mm 350
-```
-
-Launch one process with one GPU. The rank variables establish a single-process
-checkpoint-loading context under Slurm. Use a distinct master port for concurrent runs.
+No activation or `PYTHONPATH` setting is needed. The environment persists in your home
+directory and must be used inside the same image. CPU execution is supported but may
+be slow. Launch one process with one GPU; use a distinct master port for concurrent runs.
 `python3 optimize.py --help` works without importing the ML dependencies.
 
 Defaults: impact velocity `-7`, wall position `0`, 5 × 5 grid, 40 maximum SLSQP
