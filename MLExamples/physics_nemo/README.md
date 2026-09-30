@@ -29,15 +29,29 @@ bash setup_env_rocm10_pytorch_venv.sh
 
 It creates `$HOME/venvs/physicsnemo-rocm10`, reuses the container's PyTorch, and
 installs the workshop dependencies including SciPy. Pass a different new directory
-as the first argument to change the destination. Use the environment's Python
-directly, without setting `PYTHONPATH`:
+as the first argument to change the destination. This environment supports both
+training/inference and design optimization. From this directory inside the container,
+set up single-process execution:
 
 ```bash
-cd 02_design_optimization
-"$HOME/venvs/physicsnemo-rocm10/bin/python3" -u optimize.py
+export RANK=0 WORLD_SIZE=1 LOCAL_RANK=0
+export MASTER_ADDR=127.0.0.1 MASTER_PORT=29500
 ```
 
-The environment persists in your home directory and must be used inside the same
+Run exercise 1 (Adam for the MI300A toy training loop):
+
+```bash
+FORCE_ADAM_MI300A=1 "$HOME/venvs/physicsnemo-rocm10/bin/python3" -u 01_training_and_inference/workshop_crash_surrogate.py --epochs 30
+```
+
+Or run exercise 2:
+
+```bash
+"$HOME/venvs/physicsnemo-rocm10/bin/python3" -u 02_design_optimization/optimize.py --limit-mm 350
+```
+
+Neither command needs activation or a `PYTHONPATH` setting. The environment
+persists in your home directory and must be used inside the same
 container image. See the [optimization setup](02_design_optimization/README.md#run)
 for details and the [training setup](01_training_and_inference/README.md) for other images.
 
