@@ -200,7 +200,7 @@ predicted measurements with the observation.
 
 The reporting strategy matches exercises 1 and 2: the script writes a new run under
 `results/<run-id>/`; selected artifacts and README figures are published under
-`reported_results/<run-id>/`. It does not edit the README automatically.
+`reported_results/<run-id>/`.
 
 | File in the output directory | Contents |
 |---|---|
@@ -224,21 +224,3 @@ To regenerate figures from an existing run, without a GPU or model loading:
 ```bash
 "$HOME/venvs/physicsnemo-rocm10/bin/python3" plot_results.py results/first_run
 ```
-
-### Recording results on another system
-
-Select a single completed run. Check the exit code, `status: complete`, solver status,
-and all expected files. Use its `run.json` for fit/recovery metrics and `multistart.csv`
-for convergence. Copy its JSON, CSV, YAML, NPZ, PNGs, and console log to
-`reported_results/<run-id>/`; embed that run's figures and record the date, command,
-hardware, software, frame, noise, and checkpoint/observation hashes. Mark missing
-provenance as unrecorded. Do not combine measurements and figures from different runs.
-
-For example, ask an agent:
-
-> Update this README from `results/first_run/`. Verify completion, report the inferred
-> thicknesses, parameter errors, field RMSE, relative field error, gradient checks and
-> convergence across starts. Copy the selected artifacts into `reported_results/first_run/`,
-> embed its three figures, and record configuration and provenance. Explain any discrepancy
-> between good displacement fit and parameter recovery; do not claim uniqueness or
-> independent FEA confirmation without evidence.

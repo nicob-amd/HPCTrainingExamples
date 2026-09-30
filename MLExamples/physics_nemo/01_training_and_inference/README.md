@@ -151,40 +151,10 @@ The percentages compare prediction and reference in that same representation.
 The notebook writes its reference frames and toy statistics under `results/notebook/` and displays
 its plots inline. It does not produce the script's CSV files or completion metadata.
 
-### Recording results on another system
+### Reported results
 
-Status: measured 2026-09-28, run `first_run` (see [Configuration and provenance](#configuration-and-provenance)).
-
-#### Replacing Pending with measured values
-
-The script writes the measurements to the run directory; it does not edit this README automatically.
-After a run, you or an agent can update this section using the following procedure:
-
-1. Select one run directory, such as `results/first_run/`. Check that its `run.json` has
-   `status: complete` and that both `run19` and `run201` occur in `inference_timing.json` and
-   `evaluation.csv`. Use all measurements from that same run.
-2. Replace the Pending cells using the exact fields in the table below. The timing JSON is a list
-   of records: select each by its `run` field. Values already use the stated units; do not convert
-   milliseconds again. Report sizes to six decimal places and timings to three, keeping the raw files.
-3. Fill in configuration and provenance from `run.json`, the resolved YAML files, and the launch log.
-   Obtain missing host/allocation/container details from the target system. Leave unavailable fields
-   marked as unrecorded rather than inferring them from the setup recipe.
-4. Populate the error table from `evaluation.csv`. Describe the actual loss trend from
-   `training_loss.csv`, and embed the saved `training_loss.png` and `mesh.png` with relative links.
-5. Keep the supporting JSON, CSV, YAML, log, and figures at a durable location and link them here.
-   Local `results/` directories are ignored by Git: for a report shared in this repository, copy the
-   selected small artifacts into `reported_results/<run-id>/` and link to those copies. VTP frames
-   can remain in external storage. Record the location rather than adding broken local links.
-6. Change the status above to measured, including the date and run identifier. Keep the historical
-   measurements in “Where the numbers come from” labeled separately from the new results.
-
-For example, ask an agent:
-
-> Update the results section of this README from `results/first_run/`. Verify completion, fill in
-> model size, per-case inference timings and errors using the documented fields, and record the
-> environment and command. Copy the supporting small artifacts into `reported_results/first_run/`
-> and embed the loss and mesh plots. Report missing information explicitly; preserve the historical
-> results as a separate comparison.
+Measured 2026-09-28, run `first_run`. The supporting measurements and figures are in
+[`reported_results/first_run/`](reported_results/first_run/).
 
 #### Configuration and provenance
 

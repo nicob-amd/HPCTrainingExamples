@@ -60,41 +60,11 @@ The 350 mm default is an illustrative surrogate constraint, not an engineering s
 
 Like exercise 1, the script writes numerical results and figures to `results/<run-id>/`.
 Generated runs are ignored by Git. The shell command captures the console log beside
-the run directory. The script does not edit this README automatically; publish selected
-small artifacts under `reported_results/<run-id>/` when reporting a run.
-
-### Recording results on another system
-
-After a run, you or an agent can update this section using the same procedure as exercise 1:
-
-1. Select one run directory, such as `results/first_run/`. Check the process exit code,
-   `status: complete` in `result.json`, and the presence of the CSV, configuration, and plots.
-   Report `solver_success` and `candidate.predicted_feasible` separately: completion does
-   not imply a successful search or a physically validated design.
-2. Fill the result table using the exact JSON fields below. Describe the finite-difference
-   comparison using `nominal_gradient` and `gradient_checks` from that same run.
-3. Record the date, repository commit, software, device, load case, displacement limit,
-   safety factor, and launch command. Obtain missing host, allocation, and container
-   details from the target system; mark unavailable details as unrecorded.
-4. Copy that run's small JSON, CSV, YAML, PNG files and console log into
-   `reported_results/<run-id>/`. Embed its `design_space.png` and `mass_displacement.png`
-   with relative links. Do not combine one run's figures with another run's measurements.
-5. Update the status, captions, and provenance to describe the selected run. Retain earlier
-   measurements as a clearly labeled historical comparison if useful.
-
-For example, ask an agent:
-
-> Update this README from `results/first_run/`. Verify completion and report optimizer
-> success, predicted feasibility, the thickness pair, mass proxy, peak displacement,
-> constraint violation, and gradient checks. Copy the supporting artifacts and log into
-> `reported_results/first_run/`, embed the saved plots, and record configuration and
-> provenance. Report missing information explicitly and preserve earlier results as a
-> separate comparison. Do not label the candidate FEA-validated without solver evidence.
+the run directory. Selected reference artifacts are included under `reported_results/<run-id>/`.
 
 ### Reported reference run
 
-Status: measured 2026-09-30, run `reference_run`. These are the earlier cluster measurements,
-not a report of a later user run. Supporting files are in
+Measured 2026-09-30, run `reference_run`. Supporting files are in
 [`reported_results/reference_run/`](reported_results/reference_run/).
 
 | Quantity | Result | Field in `result.json` |

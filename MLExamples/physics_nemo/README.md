@@ -99,12 +99,7 @@ frame. The observed configuration was absent from checkpoint training. The examp
 the displacement vectors with autograd, checks recovery against the true parameters,
 and saves field comparisons, a fit-error landscape, and convergence plots.
 
-Each application follows the same progression: describe the engineering problem, prepare the
-environment and data, run the example, inspect the artifacts, and explain where the reported
-numbers come from. Configurations and measurements can be revised on the target system without
-changing this organization.
-
-## Where the numbers come from
+## Results
 
 The training and inference example includes a supplied checkpoint and
 [verification notes](01_training_and_inference/TESTING.md). The optimization example includes
@@ -113,10 +108,7 @@ The training and inference example includes a supplied checkpoint and
 including the configuration, gradient checks, and optimizer outcome. These results describe
 surrogate predictions and a mass proxy, not FEA-confirmed safety or measured physical mass savings.
 
-New results belong under each example's `results/` directory, alongside the configuration and
-environment that produced them. The inverse exercise reports its own measurements and
-training-exclusion evidence in [its README](03_inverse_problems/README.md).
-
-The original `physics_nemo/workshop_crash_surrogate.py` and notebook now live in
-[`01_training_and_inference/`](01_training_and_inference). Change into that folder for the setup and
-notebook commands.
+Each script saves measurements, configuration, and figures under its exercise's `results/`
+directory. Selected reference runs are included under `reported_results/` and illustrated in
+the exercise READMEs. The inverse exercise includes its measurements and training-exclusion
+evidence in [its README](03_inverse_problems/README.md).
