@@ -102,7 +102,7 @@ def main():
             rows.append(dict(crash_box=float(cb), beam=float(beam), mass_proxy=float((cb+beam)/2),
                              peak_mm=peak, adjusted_peak_mm=args.safety_factor*peak))
     with (output / 'grid.csv').open('w') as stream:
-        writer = csv.DictWriter(stream, fieldnames=list(rows[0]))
+        writer = csv.DictWriter(stream, fieldnames=list(rows[0]), lineterminator='\n')
         writer.writeheader()
         writer.writerows(rows)
     feasible = [r for r in rows if r['adjusted_peak_mm'] <= args.limit_mm]
