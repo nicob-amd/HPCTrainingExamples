@@ -131,15 +131,15 @@ sensitivities. This grid is a diagnostic, not a formal identifiability or uncert
 
 ## Mathematics
 
-Let x contain the two unknown thickness scales, and let y_i be the observed displacement
-vector of node i at the selected frame. With the known load fixed, the surrogate predicts
+Let $x$ contain the two unknown thickness scales, and let $y_i$ be the observed displacement
+vector of node $i$ at the selected frame. With the known load fixed, the surrogate predicts
 normalized positions. Convert their difference from initial positions back to millimetres:
 
 $$
 x=(x_c,x_b),\qquad u_i(x)=(\hat p_{i,t}(x)-p_{i,0})\odot\sigma_p.
 $$
 
-As in exercise 2, sigma_p is the training coordinate scale, not uncertainty. All
+As in exercise 2, $\sigma_p$ is the training coordinate scale, not uncertainty. All
 three displacement components enter the fit. Define the mean squared vector residual
 and observation scale, then solve a bounded least-squares problem:
 
@@ -149,11 +149,11 @@ J(x)=\frac{\frac{1}{N}\sum_{i=1}^{N}\|u_i(x)-y_i\|_2^2}{s_y^2},
 \qquad \min_{0.7\leq x_c,x_b\leq1.3} J(x).
 $$
 
-Scaling by s_y squared makes the objective dimensionless and does not change its
+Scaling by $s_y^2$ makes the objective dimensionless and does not change its
 minimizer. The reported **vector RMSE** is the square root of the mean squared vector
-residual, in mm; it averages over nodes, not over 3N separate scalar components.
+residual, in mm; it averages over nodes, not over $3N$ separate scalar components.
 The relative field error is the norm of the full residual divided by the observation
-norm, equal to the square root of J.
+norm, equal to $\sqrt{J(x)}$.
 
 Unlike the maximum in exercise 2, this objective does not switch between a controlling
 node or frame. Autograd differentiates the squared residual through the model:
