@@ -26,6 +26,12 @@ Part 1 trains on eight bundled runs for 30 epochs by default. Part 2 loads a sep
 statistics. The full production training dataset is not included. The two evaluation cases are
 `run19` and `run201`.
 
+These two cases are held out from the eight-run **toy training loop**, but the supplied
+checkpoint's original training log includes both. Their errors are reconstruction
+checks, not evidence of generalization to unseen simulations. Exercise 3 uses a
+[separate unseen FEA configuration](../03_inverse_problems/data/README.md); its training
+manifest documents this distinction.
+
 Continue with [design optimization](../02_design_optimization/) to reuse this checkpoint
 for a two-parameter constrained search with automatic differentiation.
 
@@ -90,7 +96,7 @@ compatibility checks and troubleshooting.
 | `--epochs` | Override the toy epoch count and inspect the resulting loss curve |
 | `checkpoint/config.yaml` | Architecture and evaluation data paths for the supplied checkpoint |
 | `checkpoint/stats/` | Original normalization required by that checkpoint |
-| `--warmup`, `--repeats` | Warmup and timed forwards per held-out simulation; defaults 3 and 10 |
+| `--warmup`, `--repeats` | Warmup and timed forwards per evaluation simulation; defaults 3 and 10 |
 | [`../setup_env_rocm10_pytorch_venv.sh`](../setup_env_rocm10_pytorch_venv.sh) | Shared dependencies; uses the container's ROCm PyTorch |
 
 The evaluation config retains production training settings but points to the bundled holdouts. It
@@ -207,7 +213,8 @@ it does not imply that these historical measurements were produced by that envir
   `checkpoint/checkpoints/checkpoint.0.200.pt` / `GeoTransolverOneShot.0.200.mdlus` (epoch 200,
   experiment `Bumper-GeoFLARE-2D-Thickness`), normalized with `checkpoint/stats/*.json`. Toy training
   used the bundled `data/vtp_train` (8 runs) with normalization recomputed into `toy_stats/*.json`.
-  Evaluation held out `run19` and `run201` from `data/vtp_holdout`.
+  Evaluation used `run19` and `run201` from `data/vtp_holdout`; these were excluded from
+  the toy loop, but included in the supplied checkpoint's original training.
 - Run directory and console log: `results/first_run/` (small artifacts copied to
   [`reported_results/first_run/`](reported_results/first_run/)); console log
   [`reported_results/first_run/first_run.log`](reported_results/first_run/first_run.log).

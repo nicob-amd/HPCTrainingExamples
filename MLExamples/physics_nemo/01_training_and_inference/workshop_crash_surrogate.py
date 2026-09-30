@@ -314,7 +314,7 @@ test_dataset = instantiate(
     split="test",
     logger=None,
 )
-print(f"Evaluation dataset: {test_dataset.num_samples} held-out samples (run19, run201)")
+print(f"Evaluation dataset: {test_dataset.num_samples} samples (run19, run201; excluded from toy training, included in checkpoint training)")
 
 real_data_stats = dict(
     node={k: v.to(DEVICE) for k, v in test_dataset.node_stats.items()},
@@ -323,8 +323,8 @@ real_data_stats = dict(
 )
 _log('cell 17: done')
 
-_log('cell 18: running inference on held-out runs...')
-# Compare surrogate prediction vs. ground truth on each held-out run,
+_log('cell 18: running inference on evaluation runs...')
+# Compare surrogate prediction vs. ground truth on each evaluation run,
 # for all three channels: peak intrusion (displacement), peak plastic
 # strain, peak von Mises stress.
 run_names = ["run19", "run201"]

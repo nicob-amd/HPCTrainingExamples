@@ -1,9 +1,9 @@
 # AI Surrogates by Example
 
 Guided, hands-on examples of using AI alongside scientific simulations, focused on design
-optimization and inverse problems. The available bumper workflow starts with training and
-inference, then reuses the supplied checkpoint to optimize two independent thickness parameters.
-Inverse problems remain a planned application.
+optimization and inverse problems. The bumper workflow starts with training and inference,
+then reuses the supplied checkpoint to optimize two independent thickness parameters and
+infer them from an unseen FEA displacement snapshot.
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/NVIDIA/physicsnemo/main/docs/img/crash/bumper_beam.gif" alt="PhysicsNeMo bumper-beam crash animation" width="80%" />
@@ -16,7 +16,7 @@ This illustrates the bumper example; it is not an output from the workshop measu
 |---|---|---|
 | [01_training_and_inference](01_training_and_inference) | Toy training, real model size, inference timing, and error against two simulations | Available |
 | [02_design_optimization](02_design_optimization) | Optimize independent crash-box and beam thicknesses using the supplied checkpoint and automatic derivatives | Available |
-| [03_inverse_problems](03_inverse_problems) | Infer simulation inputs from observations | Outline |
+| [03_inverse_problems](03_inverse_problems) | Infer crash-box and beam thicknesses from one unseen FEA snapshot using automatic derivatives | Available |
 
 ## Shared environment
 
@@ -47,8 +47,8 @@ bash setup_env_rocm10_pytorch_venv.sh
 
 It creates `$HOME/venvs/physicsnemo-rocm10`, reuses the container's PyTorch, and
 installs the workshop dependencies including SciPy. Pass a different new directory
-as the first argument to change the destination. This environment supports both
-training/inference and design optimization. From this directory inside the container,
+as the first argument to change the destination. This environment supports all three
+exercises. From this directory inside the container,
 set up single-process execution:
 
 ```bash
@@ -68,7 +68,13 @@ Or run exercise 2:
 "$HOME/venvs/physicsnemo-rocm10/bin/python3" -u 02_design_optimization/optimize.py --limit-mm 350 --output-dir 02_design_optimization/results/first_run
 ```
 
-Neither command needs activation or a `PYTHONPATH` setting. The environment
+Run exercise 3 to infer thicknesses from a measured displacement snapshot:
+
+```bash
+"$HOME/venvs/physicsnemo-rocm10/bin/python3" -u 03_inverse_problems/infer.py --output-dir 03_inverse_problems/results/first_run
+```
+
+These commands need neither activation nor a `PYTHONPATH` setting. The environment
 persists in your home directory and must be used inside the same
 container image. Setup is required only once; future container sessions can use the
 environment's Python directly. The installer refuses to overwrite an existing directory.
@@ -88,9 +94,10 @@ a grid scan followed by SLSQP with automatic derivatives. The example explains t
 checks gradients against finite differences, and reports predicted feasibility. Proposed designs
 still require independent FEA validation.
 
-**Inverse problems** will address recovering unknown simulation inputs from observations.
-The folder currently contains an outline; the physical example and runnable implementation
-are still to be developed.
+**Inverse problems** recover the two thicknesses from an FEA displacement snapshot at one
+frame. The observed configuration was absent from checkpoint training. The example fits
+the displacement vectors with autograd, checks recovery against the true parameters,
+and saves field comparisons, a fit-error landscape, and convergence plots.
 
 Each application follows the same progression: describe the engineering problem, prepare the
 environment and data, run the example, inspect the artifacts, and explain where the reported
@@ -107,7 +114,8 @@ including the configuration, gradient checks, and optimizer outcome. These resul
 surrogate predictions and a mass proxy, not FEA-confirmed safety or measured physical mass savings.
 
 New results belong under each example's `results/` directory, alongside the configuration and
-environment that produced them. No results have been measured for the inverse-problem outline.
+environment that produced them. The inverse exercise reports its own measurements and
+training-exclusion evidence in [its README](03_inverse_problems/README.md).
 
 The original `physics_nemo/workshop_crash_surrogate.py` and notebook now live in
 [`01_training_and_inference/`](01_training_and_inference). Change into that folder for the setup and

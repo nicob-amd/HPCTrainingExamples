@@ -97,11 +97,13 @@ print('GPU available:', torch.cuda.is_available())
 print('Dependency imports passed; no PYTHONPATH required.')
 PY
 "$PY" -m pip freeze > "$ENV_DIR/installed-packages.txt"
-printf '\nShared environment ready for training/inference and design optimization.\n'
+printf '\nShared environment ready for training/inference, design optimization, and inverse fitting.\n'
 printf 'Inside this same container, from the physics_nemo directory:\n'
 printf '  export RANK=0 WORLD_SIZE=1 LOCAL_RANK=0 MASTER_ADDR=127.0.0.1 MASTER_PORT=29500\n'
 printf 'Exercise 1 (training/inference; Adam for the MI300A toy loop):\n'
 printf '  FORCE_ADAM_MI300A=1 %q -u 01_training_and_inference/workshop_crash_surrogate.py --epochs 30\n' "$PY"
 printf 'Exercise 2 (design optimization):\n'
 printf '  %q -u 02_design_optimization/optimize.py --limit-mm 350 --output-dir 02_design_optimization/results/first_run\n' "$PY"
+printf 'Exercise 3 (inverse fitting), from physics_nemo:\n'
+printf '  %q -u 03_inverse_problems/infer.py --output-dir 03_inverse_problems/results/first_run\n' "$PY"
 printf 'Optional activation:\n  source %q\n' "$ENV_DIR/bin/activate"
