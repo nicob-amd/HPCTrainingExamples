@@ -50,19 +50,19 @@ The 350 mm default is an illustrative surrogate constraint, not an engineering s
 
 Let the dimensionless design vector be
 
-\[
+$
 x=(x_c,x_b),\qquad 0.7\leq x_c,x_b\leq1.3,
-\]
+$
 
 where `1` is nominal thickness, `c` denotes crash boxes, and `b` denotes the beam.
 With fixed mesh and impact conditions, the trained network predicts normalized
-positions \(\hat p_{it}(x)\) for each node \(i\) and future frame \(t\).
-Using the checkpoint's coordinate standard deviations \(\sigma_p\), recover displacement:
+positions $\hat p_{it}(x)$ for each node $i$ and future frame $t$.
+Using the checkpoint's coordinate standard deviations $\sigma_p$, recover displacement:
 
-\[
+$
 u_{it}(x)=(\hat p_{it}(x)-p_{i0})\odot\sigma_p,
 \qquad D(x)=\max_{i,t}\|u_{it}(x)\|_2.
-\]
+$
 
 The coordinate mean cancels in the subtraction. The result is in the mesh's length
 units, millimetres. Here “peak intrusion” means maximum nodal displacement magnitude
@@ -71,17 +71,17 @@ or along a specified intrusion axis.
 
 We solve
 
-\[
+$
 \min_x m(x)=\tfrac12 x_c+\tfrac12 x_b
 \quad\text{subject to}\quad sD(x)\leq D_{\rm limit}.
-\]
+$
 
 The mass proxy assumes equal nominal mass contributions from the two zones. It is
 normalized to one at the nominal design. A value of `0.90` means a 10% reduction in
 this proxy; actual mass requires material densities, element areas, and zone thicknesses.
 Replace the equal weights with measured nominal zone mass fractions when available.
 
-The optional multiplier `--safety-factor` is \(s\geq1\), defaulting to one. It can
+The optional multiplier `--safety-factor` is $s\geq1$, defaulting to one. It can
 represent an externally calibrated margin, but this script does not estimate it or
 claim a probability of safety. Historical calibration from another checkpoint is not
 transferred here. Being within the parameter bounds does not guarantee model accuracy.
@@ -94,10 +94,10 @@ input thicknesses → global model features → predicted positions → physical
 displacements → peak magnitude. `torch.autograd.grad(peak, design)` applies the chain
 rule through this computation and returns
 
-\[
+$
 \nabla_x D=\left[\frac{\partial D}{\partial x_c},
                         \frac{\partial D}{\partial x_b}\right].
-\]
+$
 
 `model.eval()` selects inference behavior; it does not disable gradients. Grid
 evaluations disable gradients to save memory, while optimizer evaluations enable
@@ -127,8 +127,8 @@ node/frame, or floating-point cancellation. This diagnostic is printed and saved
    from the point with the smallest predicted peak; an empty feasible grid alone
    does not prove the continuous problem infeasible.
 5. Minimize the linear mass proxy with analytic gradient `[0.5, 0.5]`. Supply the
-   normalized inequality \(g(x)=1-sD(x)/D_{\rm limit}\geq0\) and its autograd-derived
-   Jacobian \(-s\nabla D/D_{\rm limit}\). Cache the last value/gradient pair to avoid
+   normalized inequality $g(x)=1-sD(x)/D_{\rm limit}\geq0$ and its autograd-derived
+   Jacobian $-s\nabla D/D_{\rm limit}$. Cache the last value/gradient pair to avoid
    duplicate network evaluations when SciPy requests both.
 6. Reevaluate the returned candidate and report constraint violation separately
    from SciPy's success flag. Predicted feasibility permits at most `0.01 mm`
